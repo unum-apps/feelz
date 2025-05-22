@@ -1,0 +1,12 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gui
+  namespace: tehfeelz
+spec:
+  template:
+    spec:
+      containers:
+      - name: gui
+        image: unum-apps-tehfeelz-gui
+        imagePullPolicy: Never

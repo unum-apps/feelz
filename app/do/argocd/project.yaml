@@ -1,0 +1,10 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: tehfeelz
+spec:
+  destinations:
+  - namespace: tehfeelz
+    server: https://kubernetes.default.svc
+  sourceRepos:
+  - https://github.com/unifist/platform

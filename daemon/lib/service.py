@@ -1,0 +1,1260 @@
+"""
+Module for the Daemon
+"""
+
+# pylint: disable=no-self-use
+
+import os
+import re
+import time
+
+import micro_logger
+import json
+import redis
+
+import relations_rest
+
+import prometheus_client
+
+import unum_ledger
+import unum_tehfeelz
+
+PROCESS = prometheus_client.Gauge("process_seconds", "Time to complete a processing task")
+FACTS = prometheus_client.Summary("facts_processed", "Facts processed")
+ACTS = prometheus_client.Summary("acts_created", "Acts created")
+
+WHO = "tehfeelz"
+NAME = f"{WHO}-daemon"
+
+STATUS_EMOJIS = {
+    "requested": "❓",
+    "active": "👍",
+    "inactive": "♥️",
+    "rejected": "👎 ",
+    "excepted": "❗"
+}
+
+EMOJI_STATES = {
+    "❓": "unable",
+    "👍": "good",
+    "♥️": "able",
+    "👎": "bad",
+    "❗": "unstable",
+    "?": "unable",
+    "+": "good",
+    "*": "able",
+    "-": "bad",
+    "!": "unstable"
+}
+
+class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attributes
+    """
+    Daemon class
+    """
+
+    def __init__(self):
+
+        self.name = NAME
+        self.unifist = unum_tehfeelz.Base.SOURCE
+        self.group = f"daemon-{self.unifist}"
+        self.group_id = os.environ["K8S_POD"]
+
+        self.sleep = int(os.environ.get("SLEEP", 5))
+
+        self.logger = micro_logger.getLogger(self.name)
+
+        relations_rest.Source(unum_ledger.Base.SOURCE, url=f"http://api.{unum_ledger.Base.SOURCE}")
+        self.source = relations_rest.Source(self.unifist, url=f"http://api.{self.unifist}")
+
+        self.app = unum_ledger.App.one(who=WHO).retrieve()
+
+        self.redis = redis.Redis(host=f'redis.{unum_ledger.Base.SOURCE}', encoding="utf-8", decode_responses=True)
+
+        if (
+            not self.redis.exists("ledger/fact") or
+            self.group  not in [group["name"] for group in self.redis.xinfo_groups("ledger/fact")]
+        ):
+            self.redis.xgroup_create("ledger/fact", self.group, mkstream=True)
+
+    def is_active(self, entity_id):
+        """
+        Checks to see if an enity has a Herald
+        """
+
+        # Need to be an active Entity and have and active Herald
+
+        return (
+            unum_ledger.Entity.one(
+                id=entity_id,
+                status="active"
+            ).retrieve(False) is not None
+            and
+            unum_ledger.Herald.one(
+                entity_id=entity_id,
+                app_id=self.app.id,
+                status="active"
+            ).retrieve(False) is not None
+        )
+
+    def is_fam(self, from_id, to_id):
+        """
+        Checks to see from from to to is fam
+        """
+
+        # Connected and active
+
+        return unum_tehfeelz.Fam.one(
+            from_id=from_id,
+            to_id=to_id,
+            status="active"
+        ).retrieve(False) is not None
+
+    def encode_time(self, seconds):
+        """
+        Encodes seconds to 3d2h3m format
+        """
+
+        # Start with a blank string
+
+        arg = ""
+
+        # Determine and peel off the days, hours, and minutes
+
+        days = int(seconds/(24*60*60))
+        seconds -= days * 24*60*60
+        hours = int(seconds /(60*60))
+        seconds -= hours * 60*60
+        mins = int(seconds/(60))
+
+        # If there's a value, add it with its letter
+
+        if days:
+            arg += f"{days}d"
+
+        if hours:
+            arg += f"{hours}h"
+
+        if mins:
+            arg += f"{mins}m"
+
+        return arg
+
+    def act(self, **act):
+        """
+        Creates an act if needed
+        """
+
+        # If this person isn't active, don't write anything
+
+        if not self.is_active(act["entity_id"]):
+            return
+
+        # Create the act
+
+        act = unum_ledger.Act(**act).create()
+
+        # Log ig, metric it to Prometheus, throw it on the stream for consupmtion
+
+        self.logger.info("act", extra={"act": {"id": act.id}})
+        ACTS.observe(1)
+        self.redis.xadd("ledger/act", fields={"act": json.dumps(act.export())})
+
+    def command_state(self, instance):
+        """
+        Processes a state
+        """
+
+        # Get the common values and throw them into local vars for good DX
+
+        entity_id = instance["entity_id"]
+        usage = instance["what"]["usage"]
+        values = instance["what"].get("values", {})
+        base = "statement"
+        meme = "*"
+
+        # Assume there's not a related muy bien
+
+        muy_bien = False
+
+        # If we're recording a state
+
+        if usage == "record":
+
+            # Set what to a variable cuz ezer
+
+            what = EMOJI_STATES.get(values["state"][0], values["state"])
+
+            # Create the state with now as when
+
+            state = unum_tehfeelz.State(
+                entity_id=entity_id,
+                when=time.time(),
+                what=what
+            ).create()
+
+            # Log and message it
+
+            self.logger.info("state", extra={"state": state.export()})
+            text = f"recorded your current state as {what}."
+            base = "reaction"
+            meme = "+"
+
+            if what in ["bad", "unstable"]:
+                muy_bien = True
+
+        elif usage.startswith("list"):
+
+            now = time.time()
+            when_min = when_max = 0
+
+            if usage == "list_since":
+
+                when_min = values["since"]
+                text = f"your states from {self.encode_time(when_min) or 'now'} are:"
+
+            elif usage == "list_from_to":
+
+                when_min = values["from"]
+                when_max = values["to"]
+                when_from = self.encode_time(when_min) or 'now'
+                when_to = self.encode_time(when_max) or 'now'
+                text = f"your states from {when_from} to {when_to} are:"
+
+            for state in unum_tehfeelz.State.many(
+                entity_id=entity_id,
+                when__gte=now - when_min,
+                when__lte=now - when_max
+            ):
+                when = self.encode_time(now - state.when) or "now"
+                text += f"\n- {when} - {state.what}"
+
+        self.act(
+            entity_id=entity_id,
+            app_id=self.app.id,
+            when=int(time.time()),
+            what={
+                "base": base,
+                "meme": meme,
+                "text": text
+            },
+            meta={"ancestor": instance["meta"]}
+        )
+
+        if muy_bien:
+            self.do_muybien(entity_id, instance["meta"])
+
+    def command_mood(self, instance):
+        """
+        Processes a mood
+        """
+
+        entity_id = instance["entity_id"]
+        usage = instance["what"]["usage"]
+        values = instance["what"].get("values",{})
+        base = "statement"
+        meme = "*"
+
+        if usage == "record":
+
+            what = values["mood"]
+
+            mood = unum_tehfeelz.Mood(
+                entity_id=entity_id,
+                when=time.time(),
+                what=what
+            ).create()
+
+            self.logger.info("mood", extra={"mood": mood.export()})
+
+            text = f"recorded your current mood as {what}."
+            base = "reaction"
+            meme = "+"
+
+        else:
+
+            now = time.time()
+            when_min = when_max = 0
+
+            if usage == "list_since":
+
+                when_min = values["since"]
+                text = f"your moods from {self.encode_time(when_min) or 'now'} are:"
+
+            elif usage == "list_from_to":
+
+                when_min = values["from"]
+                when_max = values["to"]
+                text = f"your moods from {self.encode_time(when_min) or 'now'} to {self.encode_time(when_max) or 'now'} are:"
+
+            for mood in unum_tehfeelz.Mood.many(
+                entity_id=entity_id,
+                when__gte=now - when_min,
+                when__lte=now - when_max
+            ):
+                when = self.encode_time(now - mood.when) or "now"
+                text += f"\n- {mood.what} - {when}"
+
+        self.act(
+            entity_id=entity_id,
+            app_id=self.app.id,
+            when=int(time.time()),
+            what={
+                "base": base,
+                "meme": meme,
+                "text": text
+            },
+            meta={"ancestor": instance["meta"]}
+        )
+
+    def command_diary(self, instance):
+        """
+        Processes a mood
+        """
+
+        entity_id = instance["entity_id"]
+        usage = instance["what"]["usage"]
+        values = instance["what"].get("values",{})
+        base = "statement"
+        meme = "*"
+
+        if usage == "record":
+
+            what = values["thoughts"]
+
+            diary = unum_tehfeelz.Diary(
+                entity_id=entity_id,
+                when=time.time(),
+                what={"text": what}
+            ).create()
+
+            self.logger.info("diary", extra={"diary": diary.export()})
+
+            text = f"recorded your current diary - {what}"
+            base = "reaction"
+            meme = "+"
+
+        elif usage.startswith("list"):
+
+            now = time.time()
+            when_min = when_max = 0
+
+            if usage == "list_since":
+
+                when_min = values["since"]
+                text = f"your diaries from {self.encode_time(when_min) or 'now'} are:"
+
+            elif usage == "list_from_to":
+
+                when_min = values["from"]
+                when_max = values["to"]
+                text = f"your diaries from {self.encode_time(when_min) or 'now'} to {self.encode_time(when_max) or 'now'} are:"
+
+            for diary in unum_tehfeelz.Diary.many(
+                entity_id=entity_id,
+                when__gte=now - when_min,
+                when__lte=now - when_max
+            ):
+                when = self.encode_time(now - diary.when) or "now"
+                text += f"\n- {when} - {diary.what__text}"
+
+        self.act(
+            entity_id=entity_id,
+            app_id=self.app.id,
+            when=int(time.time()),
+            what={
+                "base": base,
+                "meme": meme,
+                "text": text
+            },
+            meta={"ancestor": instance["meta"]}
+        )
+
+    def command_quepasa(self, instance):
+        """
+        Processes a quepasa
+        """
+
+        entity_id = instance["entity_id"]
+        usage = instance["what"]["usage"]
+        values = instance["what"].get("values",{})
+        base = "reaction"
+        meme = "+"
+
+        quepasa = unum_tehfeelz.QuePasa.one(entity_id=entity_id).retrieve(False)
+
+        if usage.startswith("start"):
+
+            when_min = when_max = 0
+            before = "8h"
+            after = "20h"
+
+            if usage == "start_every":
+
+                when_min = when_max = values["every"]
+                when_every = self.encode_time(when_min)
+                text = f"I will check on you every {when_every}"
+
+            elif usage == "start_from_to":
+
+                when_min = values["from"]
+                when_max = values["to"]
+                when_from = self.encode_time(when_min)
+                when_to = self.encode_time(when_max)
+                text = f"I will check on you from every {when_from} to every {when_to}"
+
+            if quepasa:
+
+                quepasa.when_min = when_min
+                quepasa.when_max = when_max
+                quepasa.status = "active"
+                quepasa.update()
+
+            else:
+
+                quepasa = unum_tehfeelz.QuePasa(
+                    entity_id=entity_id,
+                    when_min=when_min,
+                    when_max=when_max,
+                    status="active",
+                    meta={
+                        "before": self.decode_time("8h"),
+                        "after": self.decode_time("20h")
+                    }
+                ).create()
+
+        elif usage == "stop":
+
+            if not quepasa:
+
+                text = f"I have never checked in on you."
+
+            elif quepasa.status == "inactive":
+
+                text = f"I am not checking in on you."
+
+            elif quepasa.status == "active":
+
+                quepasa.status = "inactive"
+                quepasa.update()
+
+                text = f"I will not check on you."
+
+        elif usage == "current":
+
+            base = "statement"
+            meme = "*"
+
+            if not quepasa or quepasa.status == "inactive":
+
+                text = f"I am not checking in on you."
+
+            elif quepasa.status == "active":
+
+                after = quepasa.meta__after
+                before = quepasa.meta__before
+
+                if quepasa.when_min == quepasa.when_max:
+
+                    when_every = self.encode_time(quepasa.when_min)
+                    text = f"I will check on you every {when_every} only after {after} and before {before} of the day"
+
+                else:
+
+                    when_from = self.encode_time(quepasa.when_min)
+                    when_to = self.encode_time(quepasa.when_max)
+                    text = f"I will check on you from every {when_from} to every {when_to} only after {after} and before {before} of the day"
+
+                now = int(time.time())
+
+                quepasa_check = unum_tehfeelz.QuePasaCheck.one(
+                    entity_id=quepasa.entity_id,
+                    status="scheduled"
+                ).retrieve(False)
+
+                if quepasa_check:
+                    next = self.encode_time(max(quepasa_check.when - now, 0)) or "now"
+                    text += f" - next check {next}"
+
+        self.act(
+            entity_id=entity_id,
+            app_id=self.app.id,
+            when=int(time.time()),
+            what={
+                "base": base,
+                "meme": meme,
+                "text": text
+            },
+            meta={"ancestor": instance["meta"]}
+        )
+
+    def command_fam(self, instance):
+        """
+        Processes an is fam
+        """
+
+        entity_id = instance["entity_id"]
+        usage = instance["what"]["usage"]
+        values = instance["what"].get("values",{})
+        base = "statement"
+        meme = "*"
+
+        if usage in ["start", "stop"]:
+
+            from_id = entity_id
+            to_id = entity_id = values["who"]
+
+            fam = unum_tehfeelz.Fam.one(from_id=from_id, to_id=to_id).retrieve(False)
+
+            if usage == "start":
+
+                base = "reaction"
+
+                if not self.is_active(to_id):
+
+                    meme = "-"
+                    text = f"{{entity:{to_id}}} is not a member of {self.app.meta__title}"
+
+                else:
+
+                    if fam:
+
+                        if fam.status not in ["requested", "active"]:
+                            fam.status = "requested"
+                            fam.update()
+
+                    else:
+
+                        fam = unum_tehfeelz.Fam(from_id=from_id, to_id=to_id, status="requested").create()
+
+                    self.logger.info("fam", extra={"fam": fam.export()})
+
+                    meme = "?"
+                    text = f"{{entity:{from_id}}} requests you're fam. 👍 to confirm, 👎 to deny"
+
+            elif usage == "stop":
+
+                meme = "+"
+
+                if fam:
+
+                    if fam.status == "active":
+                        fam.status = "inactive"
+                        fam.update()
+
+                    text = f"{{entity:{to_id}}} is not currently fam."
+
+                else:
+
+                    text = f"{{entity:{to_id}}} was never fam."
+
+                self.logger.info("fam", extra={"fam": fam.export()})
+
+        elif usage == "current":
+
+            text = f"your current fam are:"
+
+            for fam in unum_tehfeelz.Fam.many(from_id=entity_id):
+                entity = unum_ledger.Entity.one(fam.to_id)
+                text += f"\n{STATUS_EMOJIS[fam.status]} {entity.who} - {fam.status}"
+
+        self.act(
+            entity_id=entity_id,
+            app_id=self.app.id,
+            when=int(time.time()),
+            what={
+                "base": base,
+                "meme": meme,
+                "text": text
+            },
+            meta={"ancestor": instance["meta"]}
+        )
+
+    def reaction_fam(self, instance):
+        """
+        Processes an is fam
+        """
+
+        usage = instance["what"]["ancestor"]["usage"]
+
+        # We're only reacting to starts
+
+        if usage != "start":
+            return
+
+        entity_id = instance["entity_id"]           # Who reacted
+        ancestor =  instance["what"]["ancestor"]    # What was reacted to
+        from_id = ancestor["entity_id"]             # Who reqested the fam
+        values = ancestor.get("values",{})
+        to_id = values["who"]                       # Who was requested to
+        base = "reaction"
+        meme = "+"
+
+        # We only care about the reaction from the person who is being requested to
+
+        if to_id != entity_id:
+            return
+
+        # If the person being requested to is no longer active, we can't do this
+
+        if not self.is_active(to_id):
+
+            meme = "-"
+            text = f"{{entity:{to_id}}} is not a member of {self.app.meta__title}"
+
+        else:
+
+            # Get the fam in requested mode
+
+            fam = unum_tehfeelz.Fam.one(from_id=from_id, to_id=to_id).retrieve()
+
+            # Figure out the decision or bail if still undecided
+
+            if instance["what"]["meme"] == "+":
+                fam.status = "active"
+            elif instance["what"]["meme"] == "-":
+                fam.status = "rejected"
+            else:
+                return
+
+            # Update it, log it, message it
+
+            fam.update()
+            self.logger.info("fam", extra={"fam": fam.export()})
+            text = f"{fam.status} fam with {{entity:{from_id}}}"
+
+        # Respond to the original message
+
+        self.act(
+            entity_id=to_id,
+            app_id=self.app.id,
+            when=int(time.time()),
+            what={
+                "base": base,
+                "meme": meme,
+                "text": text
+            },
+            meta={"ancestor": instance["meta"]["ancestor"]}
+        )
+
+    def command_ugood(self, instance):
+        """
+        Requests confirmation for an ugood
+        """
+
+        # Get the common values and throw them into local vars for good DX
+
+        entity_id = instance["entity_id"]
+        usage = instance["what"]["usage"]
+        values = instance["what"].get("values", {})
+        meme_in = instance["what"]["meme"]
+        base = "reaction"
+        meme_out = "*"
+
+        if meme_in == "!":
+
+            from_id = entity_id
+            to_id = values["who"]
+
+            ugood = unum_tehfeelz.Ugood.one(from_id=from_id, to_id=to_id).retrieve(False)
+
+            if usage.startswith("start"):
+
+                entity_id = to_id
+
+                if not self.is_active(to_id):
+
+                    meme_out = "-"
+                    text = f"{{entity:{to_id}}} is not a member of {self.app.meta__title}"
+
+                elif not self.is_fam(from_id, to_id):
+
+                    meme_out = "-"
+                    text = f"{{entity:{to_id}}} is not fam"
+
+                else:
+
+                    meme_out = "?"
+                    when_min = when_max = 0
+
+                    if usage == "start_every":
+
+                        when_min = when_max = values["every"]
+                        text = f"{{entity:{from_id}}} requets a ugood every {self.encode_time(when_min)}."
+
+                    elif usage == "start_from_to":
+
+                        when_min = values["from"]
+                        when_max = values["to"]
+                        text = f"{{entity:{from_id}}} requests a ugood every {self.encode_time(when_min)} to every {self.encode_time(when_max)}"
+
+                    if ugood:
+
+                        ugood.when_min = when_min
+                        ugood.when_max = when_max
+                        ugood.status = "requested"
+                        ugood.update()
+
+                    else:
+
+                        ugood = unum_tehfeelz.Ugood(
+                            from_id=from_id,
+                            to_id=to_id,
+                            when_min=when_min,
+                            when_max=when_max,
+                            status="requested"
+                        ).create()
+
+                    self.logger.info("ugood", extra={"ugood": ugood.export()})
+
+                    text += " 👍 to confirm, 👎 to deny"
+
+            elif usage == "stop":
+
+                meme_out = "+"
+
+                if ugood:
+
+                    ugood.status = "inactive"
+                    ugood.update()
+
+                    text = f"{{entity:{to_id}}} will not check in on you"
+
+                else:
+
+                    text = f"{{entity:{to_id}}} was not checking in on you."
+
+                self.logger.info("ugood", extra={"ugood": ugood.export()})
+
+        elif usage == "current":
+
+            base = "statement"
+
+            text = f"your current ugood are:"
+
+            for ugood in unum_tehfeelz.Ugood.many(from_id=entity_id):
+
+                entity = unum_ledger.Entity.one(ugood.to_id)
+                text += f"\n- {STATUS_EMOJIS[ugood.status]} {entity.who} - {ugood.status}"
+
+                if ugood.status == "active":
+
+                    now = int(time.time())
+
+                    ugood_check = unum_tehfeelz.UgoodCheck.one(
+                        from_id=ugood.from_id,
+                        to_id=ugood.to_id,
+                        status="requested",
+                        when__gt=now
+                    ).retrieve(False)
+
+                    if ugood_check:
+                        next = self.encode_time(max(ugood_check.when - now, 0)) or "now"
+                        text += f" - next check {next}"
+
+        self.act(
+            entity_id=entity_id,
+            app_id=self.app.id,
+            when=int(time.time()),
+            what={
+                "meme": meme_out,
+                "base": base,
+                "text": text
+            },
+            meta={"ancestor": instance["meta"]}
+        )
+
+    def reaction_ugood(self, instance):
+        """
+        Comletes an ugood
+        """
+
+        usage = instance["what"]["ancestor"]["usage"]
+
+        # We're only reacting to starts
+
+        if not usage.startswith("start"):
+            return
+
+        entity_id = instance["entity_id"]           # Who reacted
+        ancestor =  instance["what"]["ancestor"]    # What was reacted to
+        from_id = ancestor["entity_id"]             # Who reqested the fam
+        values = ancestor.get("values",{})
+        to_id = values["who"]                       # Who was requested to
+        base = "reaction"
+        meme_in = instance["what"]["meme"]
+        meme_out = "-"
+
+        # We only care about the reaction from the person who is being requested to
+
+        if to_id != entity_id:
+            return
+
+        # If the person being requested to is no longer active, we can't do this
+
+        if not self.is_active(to_id):
+
+            text = f"{{entity:{to_id}}} is not a member of {self.app.meta__title}"
+
+        elif not self.is_fam(from_id, to_id):
+
+            text = f"{{entity:{to_id}}} is not fam."
+
+        else:
+
+            # Get the fam in requested mode
+
+            ugood = unum_tehfeelz.Ugood.one(from_id=from_id, to_id=to_id).retrieve()
+
+            # Figure out the decision or bail if still undecided
+
+            if meme_in == "+":
+                ugood.status = "active"
+                meme_out = "+"
+                text = f"{{entity:{to_id}}} will check in on you"
+            elif meme_in == "-":
+                ugood.status = "rejected"
+                text = f"{{entity:{to_id}}} will not check in on you"
+            else:
+                return
+
+            # Update it, log it, message it
+
+            ugood.update()
+            self.logger.info("ugood", extra={"ugood": ugood.export()})
+
+        # Respond to the original message
+
+        self.act(
+            entity_id=from_id,
+            app_id=self.app.id,
+            when=int(time.time()),
+            what={
+                "base": base,
+                "meme": meme_out,
+                "text": text
+            },
+            meta={"ancestor": instance["meta"]["ancestor"]}
+        )
+
+    def reaction_quepasacheck(self, instance):
+        """
+        Reacts to a queue pasa check
+        """
+
+        entity_id = instance["entity_id"]          # Who reacted
+        ancestor = instance["what"]["ancestor"]    # What was reacted to
+        id = ancestor["id"]                        # What was requested
+        emoji = instance["what"].get("emoji")
+        text = instance["what"].get("text")
+        base_in = instance["what"]["base"]
+        base_out = "reaction"
+        meme_in = instance["what"]["meme"]
+        meme_out = "+"
+
+        # Assume there's not a related muy bien
+
+        muy_bien = False
+
+        # Get the check
+
+        quepasa_check = unum_tehfeelz.QuePasaCheck.one(id=id)
+
+        # If it doesn't match, bail
+
+        if entity_id != quepasa_check.entity_id:
+            return
+
+        # IF we're recieving someting the request is fulfilled,
+        # more can be added, but this is a success
+
+        if quepasa_check.status != "inactive":
+            quepasa_check.status = "inactive"
+            quepasa_check.update()
+
+        # Set up the reference
+
+        meta = {"quepasa_check":  quepasa_check.id}
+
+        if base_in == "reaction":
+
+            if meme_in in EMOJI_STATES and emoji in EMOJI_STATES:
+
+                what = EMOJI_STATES[meme_in]
+
+                state = unum_tehfeelz.State(
+                    entity_id=entity_id,
+                    when=time.time(),
+                    what=what,
+                    meta=meta
+                ).create()
+
+                if what in ["bad", "unstable"]:
+                    muy_bien = True
+
+                self.logger.info("state", extra={
+                    "state": state.export(),
+                    "muy_bien": muy_bien
+                })
+
+                text = f"recorded your current state as {what}."
+
+            else:
+
+                what = emoji
+
+                mood = unum_tehfeelz.Mood(
+                    entity_id=entity_id,
+                    when=time.time(),
+                    what=what,
+                    meta=meta
+                ).create()
+
+                self.logger.info("mood", extra={"mood": mood.export()})
+
+                text = f"recorded your current mood as {what}."
+
+        else:
+
+            what = instance["what"]["text"]
+
+            diary = unum_tehfeelz.Diary(
+                entity_id=entity_id,
+                when=time.time(),
+                what={"text": what},
+                meta=meta
+            ).create()
+
+            self.logger.info("diary", extra={"diary": diary.export()})
+
+            text = f"recorded your thoughts - {what}"
+
+        self.act(
+            entity_id=entity_id,
+            app_id=self.app.id,
+            when=int(time.time()),
+            what={
+                "base": base_out,
+                "meme": meme_out,
+                "text": text
+            },
+            meta={"ancestor": instance["meta"]["ancestor"]}
+        )
+
+        if muy_bien:
+            self.do_muybien(entity_id, instance["meta"]["ancestor"])
+
+    def reaction_ugoodcheck(self, instance):
+        """
+        Reacts to a ugood a check
+        """
+
+        entity_id = instance["entity_id"]          # Who reacted
+        ancestor = instance["what"]["ancestor"]    # What was reacted to
+        id = ancestor["id"]                        # What was requested
+        emoji = instance["what"].get("emoji")
+        text = instance["what"].get("text")
+        base_in = instance["what"]["base"]
+        base_out = "reaction"
+        meme_in = instance["what"]["meme"]
+        meme_out = "+"
+
+        # Assume there's not a related muy bien
+
+        muy_bien = False
+
+        if not self.is_active(entity_id):
+            return
+
+        ugood_check = unum_tehfeelz.UgoodCheck.one(id=id)
+        meme = "*"
+
+        if entity_id not in [ugood_check.from_id, ugood_check.to_id]:
+            return
+
+        if ugood_check.status != "inactive":
+            ugood_check.status = "inactive"
+            ugood_check.update()
+
+        meta = {"ugood_check":  ugood_check.id}
+
+        whose = "your"
+
+        if entity_id != ugood_check.from_id:
+            meta["entity_id"] = entity_id
+            whose = f"{{entity:{ugood_check.from_id}}}'s"
+
+        if base_in == "reaction":
+
+            if meme_in in EMOJI_STATES and emoji in EMOJI_STATES:
+
+                what = EMOJI_STATES[meme_in]
+
+                state = unum_tehfeelz.State(
+                    entity_id=ugood_check.from_id,
+                    when=time.time(),
+                    what=what,
+                    meta=meta
+                ).create()
+
+                if what in ["bad", "unstable"]:
+                    muy_bien = True
+
+                self.logger.info("state", extra={
+                    "state": state.export(),
+                    "muy_bien": muy_bien
+                })
+
+                text = f"recorded {whose} current state as {what}."
+
+            else:
+
+                what = emoji
+
+                mood = unum_tehfeelz.Mood(
+                    entity_id=ugood_check.from_id,
+                    when=time.time(),
+                    what=what,
+                    meta=meta
+                ).create()
+
+                self.logger.info("mood", extra={"mood": mood.export()})
+
+                text = f"recorded {whose} current mood as {what}."
+
+        else:
+
+            what = instance["what"]["text"]
+
+            diary = unum_tehfeelz.Diary(
+                entity_id=ugood_check.from_id,
+                when=time.time(),
+                what={"text": what},
+                meta=meta
+            ).create()
+
+            self.logger.info("diary", extra={"diary": diary.export()})
+
+            text = f"recorded {whose} thoughts - {what}"
+
+        self.act(
+            entity_id=entity_id,
+            app_id=self.app.id,
+            when=int(time.time()),
+            what={
+                "base": base_out,
+                "meme": meme_out,
+                "text": text
+            },
+            meta={"ancestor": instance["meta"]["ancestor"]}
+        )
+
+        if muy_bien:
+            self.do_muybien(entity_id, instance["meta"]["ancestor"])
+
+    def command_muybien(self, instance):
+        """
+        Processes a muybien
+        """
+
+        entity_id = instance["entity_id"]
+        usage = instance["what"]["usage"]
+        values = instance["what"].get("values",{})
+        base = "reaction"
+        meme = "+"
+
+        muybien = unum_tehfeelz.MuyBien.one(entity_id=entity_id).retrieve(False)
+
+        if usage == "start":
+
+            when = values["amount"]
+            deduct = self.encode_time(when)
+
+            text = f"for every bad state, I will deduct {deduct} from your next ugood check"
+
+            if muybien:
+
+                muybien.when = when
+                muybien.status = "active"
+                muybien.update()
+
+            else:
+
+                muybien = unum_tehfeelz.MuyBien(
+                    entity_id=entity_id,
+                    when=when,
+                    status="active"
+                ).create()
+
+        elif usage == "stop":
+
+            if not muybien:
+
+                text = f"I have never adjusted ugood checks for you."
+
+            elif muybien.status == "inactive":
+
+                text = f"I am not adjusting ugood checks for you."
+
+            elif muybien.status == "active":
+
+                muybien.status = "inactive"
+                muybien.update()
+
+                text = f"I will not adjust ugood checks for you."
+
+        elif usage == "current":
+
+            meme = "*"
+
+            if not muybien or muybien.status == "inactive":
+
+                text = f"I am not adjusting ugood checks for you."
+
+            elif muybien.status == "active":
+
+                deduct = self.encode_time(muybien.when)
+                text = f"for every bad state, I will deduct {deduct} from your next ugood check"
+
+        self.act(
+            entity_id=entity_id,
+            app_id=self.app.id,
+            when=int(time.time()),
+            what={
+                "meme": meme,
+                "base": base,
+                "text": text
+            },
+            meta={"ancestor": instance["meta"]}
+        )
+
+    def do_muybien(self, entity_id, reference):
+        """
+        See if there's a muy bien and execute if so
+        """
+
+        muybien = unum_tehfeelz.MuyBien.one(entity_id=entity_id, status="active").retrieve(False)
+
+        if not muybien:
+            return
+
+        ugood_checks = unum_tehfeelz.UgoodCheck.many(from_id=entity_id, status="requested").sort("when")
+
+        if not len(ugood_checks):
+            return
+
+        ugood_check = ugood_checks[0]
+        ugood_check.when -= muybien.when
+        ugood_check.update()
+
+        now = int(time.time())
+
+        by = self.encode_time(muybien.when)
+        next = self.encode_time(max(ugood_check.when - now, 0)) or "now"
+        to_id = ugood_check.to_id
+
+        text = f"I reduced {{entity:{to_id}}}'s next check by {by} to {next}"
+
+        self.act(
+            entity_id=entity_id,
+            app_id=self.app.id,
+            when=int(time.time()),
+            what={
+                "meme": "+",
+                "base": "reaction",
+                "text": text
+            },
+            meta={"ancestor": reference}
+        )
+
+    def do_command(self, instance):
+        """
+        Perform the command
+        """
+
+        name = instance["what"]["command"]
+
+        if name == "state":
+            self.command_state(instance)
+        elif name == "mood":
+            self.command_mood(instance)
+        elif name == "diary":
+            self.command_diary(instance)
+        elif name == "fam":
+            self.command_fam(instance)
+        elif name == "quepasa":
+            self.command_quepasa(instance)
+        elif name == "ugood":
+            self.command_ugood(instance)
+        elif name == "muybien":
+            self.command_muybien(instance)
+
+    def do_reaction(self, instance):
+        """
+        Perform the who
+        """
+
+        name = instance["what"]["ancestor"]["command"]
+
+        if name == "fam":
+            self.reaction_fam(instance)
+        elif name == "ugood":
+            self.reaction_ugood(instance)
+        elif name == "quepasacheck":
+            self.reaction_quepasacheck(instance)
+        elif name == "ugoodcheck":
+            self.reaction_ugoodcheck(instance)
+
+    @PROCESS.time()
+    def process(self):
+        """
+        Reads people off the queue and logs them
+        """
+
+        message = self.redis.xreadgroup(self.group, self.group_id, {"ledger/fact": ">"}, count=1, block=1000*self.sleep)
+
+        if not message:
+            return
+
+        if "fact" in message[0][1][0][1]:
+
+            instance = json.loads(message[0][1][0][1]["fact"])
+            self.logger.info("fact", extra={"fact": instance})
+            FACTS.observe(1)
+
+            # Need to be cleared to see this person's data and avoid errors
+
+            if (
+                not self.is_active(instance["what"].get("entity_id")) or
+                instance["what"].get("error") or
+                instance["what"].get("errors")
+            ):
+                return
+
+            # If we are responding to a command, do that
+
+            if (
+                instance["what"].get("ancestor", {}).get("base") == "command" and
+                WHO in instance["what"].get("ancestor", {}).get("apps", [])
+            ):
+                self.do_reaction(instance)
+
+            # Else if we are a command do that
+
+            elif (
+                instance["what"]["base"] == "command" and
+                WHO in instance["what"].get("apps", [])
+            ):
+                self.do_command(instance)
+
+        self.redis.xack("ledger/fact", self.group, message[0][1][0][0])
+
+    def run(self):
+        """
+        Main loop with sleep
+        """
+
+        prometheus_client.start_http_server(80)
+
+        while True:
+
+            self.process()

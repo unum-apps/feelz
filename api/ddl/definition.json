@@ -1,0 +1,637 @@
+{
+    "diary": {
+        "fields": [
+            {
+                "auto": true,
+                "kind": "int",
+                "name": "id",
+                "none": true,
+                "store": "id"
+            },
+            {
+                "kind": "int",
+                "name": "entity_id",
+                "none": true,
+                "store": "entity_id"
+            },
+            {
+                "kind": "int",
+                "name": "when",
+                "none": true,
+                "store": "when"
+            },
+            {
+                "kind": "dict",
+                "name": "what",
+                "none": false,
+                "store": "what"
+            },
+            {
+                "kind": "dict",
+                "name": "meta",
+                "none": false,
+                "store": "meta"
+            }
+        ],
+        "id": "id",
+        "index": {
+            "when": [
+                "when"
+            ]
+        },
+        "name": "diary",
+        "schema": "tehfeelz",
+        "source": "tehfeelz",
+        "store": "diary",
+        "title": "Diary",
+        "unique": {}
+    },
+    "dispute": {
+        "fields": [
+            {
+                "auto": true,
+                "kind": "int",
+                "name": "id",
+                "none": true,
+                "store": "id"
+            },
+            {
+                "kind": "int",
+                "name": "from_id",
+                "none": true,
+                "store": "from_id"
+            },
+            {
+                "kind": "int",
+                "name": "to_id",
+                "none": true,
+                "store": "to_id"
+            },
+            {
+                "kind": "int",
+                "name": "when",
+                "none": true,
+                "store": "when"
+            },
+            {
+                "default": "requested",
+                "kind": "str",
+                "name": "status",
+                "none": false,
+                "options": [
+                    "requested",
+                    "active",
+                    "inactive",
+                    "rejected",
+                    "excepted"
+                ],
+                "store": "status"
+            },
+            {
+                "kind": "dict",
+                "name": "meta",
+                "none": false,
+                "store": "meta"
+            }
+        ],
+        "id": "id",
+        "index": {},
+        "name": "dispute",
+        "schema": "tehfeelz",
+        "source": "tehfeelz",
+        "store": "dispute",
+        "title": "Dispute",
+        "unique": {
+            "from_id-to_id-when": [
+                "from_id",
+                "to_id",
+                "when"
+            ]
+        }
+    },
+    "fam": {
+        "fields": [
+            {
+                "auto": true,
+                "kind": "int",
+                "name": "id",
+                "none": true,
+                "store": "id"
+            },
+            {
+                "kind": "int",
+                "name": "from_id",
+                "none": true,
+                "store": "from_id"
+            },
+            {
+                "kind": "int",
+                "name": "to_id",
+                "none": true,
+                "store": "to_id"
+            },
+            {
+                "default": "requested",
+                "kind": "str",
+                "name": "status",
+                "none": false,
+                "options": [
+                    "requested",
+                    "active",
+                    "inactive",
+                    "rejected",
+                    "excepted"
+                ],
+                "store": "status"
+            },
+            {
+                "kind": "dict",
+                "name": "meta",
+                "none": false,
+                "store": "meta"
+            }
+        ],
+        "id": "id",
+        "index": {},
+        "name": "fam",
+        "schema": "tehfeelz",
+        "source": "tehfeelz",
+        "store": "fam",
+        "title": "Fam",
+        "unique": {
+            "from_id-to_id": [
+                "from_id",
+                "to_id"
+            ]
+        }
+    },
+    "mediation": {
+        "fields": [
+            {
+                "auto": true,
+                "kind": "int",
+                "name": "id",
+                "none": true,
+                "store": "id"
+            },
+            {
+                "kind": "int",
+                "name": "dispute_id",
+                "none": true,
+                "store": "dispute_id"
+            },
+            {
+                "kind": "int",
+                "name": "entity_id",
+                "none": true,
+                "store": "entity_id"
+            },
+            {
+                "default": "requested",
+                "kind": "str",
+                "name": "status",
+                "none": false,
+                "options": [
+                    "requested",
+                    "active",
+                    "inactive",
+                    "rejected",
+                    "excepted"
+                ],
+                "store": "status"
+            },
+            {
+                "kind": "dict",
+                "name": "meta",
+                "none": false,
+                "store": "meta"
+            }
+        ],
+        "id": "id",
+        "index": {},
+        "name": "mediation",
+        "schema": "tehfeelz",
+        "source": "tehfeelz",
+        "store": "mediation",
+        "title": "Mediation",
+        "unique": {
+            "dispute_id-entity_id": [
+                "dispute_id",
+                "entity_id"
+            ]
+        }
+    },
+    "mood": {
+        "fields": [
+            {
+                "auto": true,
+                "kind": "int",
+                "name": "id",
+                "none": true,
+                "store": "id"
+            },
+            {
+                "kind": "int",
+                "name": "entity_id",
+                "none": true,
+                "store": "entity_id"
+            },
+            {
+                "kind": "int",
+                "name": "when",
+                "none": true,
+                "store": "when"
+            },
+            {
+                "kind": "str",
+                "name": "what",
+                "none": false,
+                "store": "what"
+            },
+            {
+                "kind": "dict",
+                "name": "meta",
+                "none": false,
+                "store": "meta"
+            }
+        ],
+        "id": "id",
+        "index": {
+            "when": [
+                "when"
+            ]
+        },
+        "name": "mood",
+        "schema": "tehfeelz",
+        "source": "tehfeelz",
+        "store": "mood",
+        "title": "Mood",
+        "unique": {}
+    },
+    "muy_bien": {
+        "fields": [
+            {
+                "auto": true,
+                "kind": "int",
+                "name": "id",
+                "none": true,
+                "store": "id"
+            },
+            {
+                "kind": "int",
+                "name": "entity_id",
+                "none": true,
+                "store": "entity_id"
+            },
+            {
+                "default": "requested",
+                "kind": "str",
+                "name": "status",
+                "none": false,
+                "options": [
+                    "requested",
+                    "active",
+                    "inactive",
+                    "rejected",
+                    "excepted"
+                ],
+                "store": "status"
+            },
+            {
+                "kind": "int",
+                "name": "when",
+                "none": true,
+                "store": "when"
+            },
+            {
+                "kind": "dict",
+                "name": "meta",
+                "none": false,
+                "store": "meta"
+            }
+        ],
+        "id": "id",
+        "index": {},
+        "name": "muy_bien",
+        "schema": "tehfeelz",
+        "source": "tehfeelz",
+        "store": "muy_bien",
+        "title": "MuyBien",
+        "unique": {
+            "entity_id": [
+                "entity_id"
+            ]
+        }
+    },
+    "que_pasa": {
+        "fields": [
+            {
+                "auto": true,
+                "kind": "int",
+                "name": "id",
+                "none": true,
+                "store": "id"
+            },
+            {
+                "kind": "int",
+                "name": "entity_id",
+                "none": true,
+                "store": "entity_id"
+            },
+            {
+                "kind": "int",
+                "name": "when_min",
+                "none": true,
+                "store": "when_min"
+            },
+            {
+                "kind": "int",
+                "name": "when_max",
+                "none": true,
+                "store": "when_max"
+            },
+            {
+                "default": "requested",
+                "kind": "str",
+                "name": "status",
+                "none": false,
+                "options": [
+                    "requested",
+                    "active",
+                    "inactive",
+                    "rejected",
+                    "excepted"
+                ],
+                "store": "status"
+            },
+            {
+                "kind": "dict",
+                "name": "meta",
+                "none": false,
+                "store": "meta"
+            }
+        ],
+        "id": "id",
+        "index": {},
+        "name": "que_pasa",
+        "schema": "tehfeelz",
+        "source": "tehfeelz",
+        "store": "que_pasa",
+        "title": "QuePasa",
+        "unique": {
+            "entity_id": [
+                "entity_id"
+            ]
+        }
+    },
+    "que_pasa_check": {
+        "fields": [
+            {
+                "auto": true,
+                "kind": "int",
+                "name": "id",
+                "none": true,
+                "store": "id"
+            },
+            {
+                "kind": "int",
+                "name": "entity_id",
+                "none": true,
+                "store": "entity_id"
+            },
+            {
+                "kind": "int",
+                "name": "when",
+                "none": true,
+                "store": "when"
+            },
+            {
+                "default": "requested",
+                "kind": "str",
+                "name": "status",
+                "none": false,
+                "options": [
+                    "requested",
+                    "active",
+                    "inactive",
+                    "rejected",
+                    "excepted"
+                ],
+                "store": "status"
+            },
+            {
+                "kind": "dict",
+                "name": "meta",
+                "none": false,
+                "store": "meta"
+            }
+        ],
+        "id": "id",
+        "index": {
+            "when": [
+                "when"
+            ]
+        },
+        "name": "que_pasa_check",
+        "schema": "tehfeelz",
+        "source": "tehfeelz",
+        "store": "que_pasa_check",
+        "title": "QuePasaCheck",
+        "unique": {
+            "entity_id-when": [
+                "entity_id",
+                "when"
+            ]
+        }
+    },
+    "state": {
+        "fields": [
+            {
+                "auto": true,
+                "kind": "int",
+                "name": "id",
+                "none": true,
+                "store": "id"
+            },
+            {
+                "kind": "int",
+                "name": "entity_id",
+                "none": true,
+                "store": "entity_id"
+            },
+            {
+                "kind": "int",
+                "name": "when",
+                "none": true,
+                "store": "when"
+            },
+            {
+                "default": "unable",
+                "kind": "str",
+                "name": "what",
+                "none": false,
+                "options": [
+                    "unable",
+                    "good",
+                    "able",
+                    "bad",
+                    "unstable"
+                ],
+                "store": "what"
+            },
+            {
+                "kind": "dict",
+                "name": "meta",
+                "none": false,
+                "store": "meta"
+            }
+        ],
+        "id": "id",
+        "index": {
+            "when": [
+                "when"
+            ]
+        },
+        "name": "state",
+        "schema": "tehfeelz",
+        "source": "tehfeelz",
+        "store": "state",
+        "title": "State",
+        "unique": {}
+    },
+    "ugood": {
+        "fields": [
+            {
+                "auto": true,
+                "kind": "int",
+                "name": "id",
+                "none": true,
+                "store": "id"
+            },
+            {
+                "kind": "int",
+                "name": "from_id",
+                "none": true,
+                "store": "from_id"
+            },
+            {
+                "kind": "int",
+                "name": "to_id",
+                "none": true,
+                "store": "to_id"
+            },
+            {
+                "kind": "int",
+                "name": "when_min",
+                "none": true,
+                "store": "when_min"
+            },
+            {
+                "kind": "int",
+                "name": "when_max",
+                "none": true,
+                "store": "when_max"
+            },
+            {
+                "default": "requested",
+                "kind": "str",
+                "name": "status",
+                "none": false,
+                "options": [
+                    "requested",
+                    "active",
+                    "inactive",
+                    "rejected",
+                    "excepted"
+                ],
+                "store": "status"
+            },
+            {
+                "kind": "dict",
+                "name": "meta",
+                "none": false,
+                "store": "meta"
+            }
+        ],
+        "id": "id",
+        "index": {},
+        "name": "ugood",
+        "schema": "tehfeelz",
+        "source": "tehfeelz",
+        "store": "ugood",
+        "title": "Ugood",
+        "unique": {
+            "from_id-to_id": [
+                "from_id",
+                "to_id"
+            ]
+        }
+    },
+    "ugood_check": {
+        "fields": [
+            {
+                "auto": true,
+                "kind": "int",
+                "name": "id",
+                "none": true,
+                "store": "id"
+            },
+            {
+                "kind": "int",
+                "name": "from_id",
+                "none": true,
+                "store": "from_id"
+            },
+            {
+                "kind": "int",
+                "name": "to_id",
+                "none": true,
+                "store": "to_id"
+            },
+            {
+                "kind": "int",
+                "name": "when",
+                "none": true,
+                "store": "when"
+            },
+            {
+                "default": "requested",
+                "kind": "str",
+                "name": "status",
+                "none": false,
+                "options": [
+                    "requested",
+                    "active",
+                    "inactive",
+                    "rejected",
+                    "excepted"
+                ],
+                "store": "status"
+            },
+            {
+                "kind": "dict",
+                "name": "meta",
+                "none": false,
+                "store": "meta"
+            }
+        ],
+        "id": "id",
+        "index": {
+            "when": [
+                "when"
+            ]
+        },
+        "name": "ugood_check",
+        "schema": "tehfeelz",
+        "source": "tehfeelz",
+        "store": "ugood_check",
+        "title": "UgoodCheck",
+        "unique": {
+            "from_id-to_id-when": [
+                "from_id",
+                "to_id",
+                "when"
+            ]
+        }
+    }
+}
