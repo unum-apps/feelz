@@ -1,5 +1,5 @@
 PyYAML==6.0.2
-unum-ledger @ git+https://github.com/unum-apps/ledger@cf7920ef97038bdfc1178e9fc0589b996cac0cbe
+unum-ledger @ git+https://github.com/unum-apps/ledger@ad68ba61c18fea94023057c89dbb00527a0eb6e5
 relations-pymysql==0.6.12
 relations-restx==0.6.2
 micro-logger==0.1.2

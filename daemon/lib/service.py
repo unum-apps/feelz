@@ -30,7 +30,7 @@ STATUS_EMOJIS = {
     "requested": "❓",
     "active": "👍",
     "inactive": "♥️",
-    "rejected": "👎 ",
+    "rejected": "👎",
     "excepted": "❗"
 }
 
