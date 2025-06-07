@@ -186,6 +186,13 @@ commands:
     - name: to
       description: Check in latest every {to}
       format: duration
+    reactions:
+    - meme: '+'
+      value: good
+      description: I will check on 
+    - meme: '-'
+      value: bad
+      description: I'm doing worse than expected.
   - name: start_every
     meme: '!'
     description: Request {who} check on you every {every}
@@ -229,6 +236,42 @@ commands:
   - name: current
     meme: '?'
     description: Shows your current muybien
+- name: quepasacheck
+  user: false
+  reactions:
+  - meme: '?'
+    value: unable
+    description: I can't move forward. I'm stuck. 
+  - meme: '+'
+    value: good
+    description: I'm doing better than expected.
+  - meme: '*'
+    value: able
+    description: I'm doing as well as expected.
+  - meme: '-'
+    value: bad
+    description: I'm doing worse than expected.
+  - meme: '!'
+    value: unstable
+    description: Something is wrong. I'm hurting.
+- name: quepasacheck
+  user: false
+  reactions:
+  - meme: '?'
+    value: unable
+    description: I can't move forward. I'm stuck. 
+  - meme: '+'
+    value: good
+    description: I'm doing better than expected.
+  - meme: '*'
+    value: able
+    description: I'm doing as well as expected.
+  - meme: '-'
+    value: bad
+    description: I'm doing worse than expected.
+  - meme: '!'
+    value: unstable
+    description: Something is wrong. I'm hurting.
 """
 
 NAME = f"{WHO}-api"

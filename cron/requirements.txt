@@ -1,4 +1,4 @@
-unum-ledger @ git+https://github.com/unum-apps/ledger@ad68ba61c18fea94023057c89dbb00527a0eb6e5
+unum-ledger @ git+https://github.com/unum-apps/ledger@84d93334f2fdc235ba359d7d45cadff054a2f655
 relations-rest==0.5.0
 micro-logger==0.1.2
 prometheus-client==0.12.0

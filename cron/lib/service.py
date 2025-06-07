@@ -114,7 +114,7 @@ class Cron: # pylint: disable=too-few-public-methods
 
                 # Create a new check in
 
-                quepasa_check = unum_tehfeelz.QuePasaCheck(
+                quepasacheck = unum_tehfeelz.QuePasaCheck(
                     entity_id=quqpasa.entity_id,
                     when=now+random.randint(quqpasa.when_min, quqpasa.when_max),
                     status="requested"
@@ -128,8 +128,8 @@ class Cron: # pylint: disable=too-few-public-methods
                     status="active"
                 ).set(status="rejected").update()
 
-                self.logger.info("quepasa_check", extra={
-                    "quepasa_check": quepasa_check.export(),
+                self.logger.info("quepasacheck", extra={
+                    "quepasacheck": quepasacheck.export(),
                     "rejected": rejected
                 })
 
@@ -140,13 +140,13 @@ class Cron: # pylint: disable=too-few-public-methods
 
         now = time.time()
 
-        for quepasa_check in unum_tehfeelz.QuePasaCheck.many(status="requested", when__lte=now):
+        for quepasacheck in unum_tehfeelz.QuePasaCheck.many(status="requested", when__lte=now):
 
-            if not self.is_active(quepasa_check.entity_id):
+            if not self.is_active(quepasacheck.entity_id):
                 continue
 
             if unum_tehfeelz.QuePasa.one(
-                entity_id=quepasa_check.entity_id,
+                entity_id=quepasacheck.entity_id,
                 status="active"
             ).retrieve(False) is None:
                 continue
@@ -154,20 +154,20 @@ class Cron: # pylint: disable=too-few-public-methods
             text = f"how are you?"
 
             self.act(
-                entity_id=quepasa_check.entity_id,
+                entity_id=quepasacheck.entity_id,
                 app_id=self.app.id,
                 when=int(time.time()),
                 what={
                     "base": "statement",
                     "command": "quepasacheck",
-                    "id": quepasa_check.id,
+                    "id": quepasacheck.id,
                     "meme": "?",
                     "text": text
                 }
             )
 
-            quepasa_check.status = "active"
-            quepasa_check.update()
+            quepasacheck.status = "active"
+            quepasacheck.update()
 
     def schedule_ugoodchecks(self):
         """
@@ -187,7 +187,7 @@ class Cron: # pylint: disable=too-few-public-methods
                 when__gt=now
             ).retrieve(False) is None:
 
-                ugood_check = unum_tehfeelz.UgoodCheck(
+                ugoodcheck = unum_tehfeelz.UgoodCheck(
                     from_id=ugood.from_id,
                     to_id=ugood.to_id,
                     when=now+random.randint(ugood.when_min, ugood.when_max),
@@ -201,8 +201,8 @@ class Cron: # pylint: disable=too-few-public-methods
                     status="active"
                 ).set(status="rejected").update()
 
-                self.logger.info("ugood_check", extra={
-                    "ugood_check": ugood_check.export(),
+                self.logger.info("ugoodcheck", extra={
+                    "ugoodcheck": ugoodcheck.export(),
                     "rejected": rejected
                 })
 
@@ -213,35 +213,35 @@ class Cron: # pylint: disable=too-few-public-methods
 
         now = time.time()
 
-        for ugood_check in unum_tehfeelz.UgoodCheck.many(status="requested", when__lte=now):
+        for ugoodcheck in unum_tehfeelz.UgoodCheck.many(status="requested", when__lte=now):
 
-            if not self.is_active(ugood_check.to_id):
+            if not self.is_active(ugoodcheck.to_id):
                 continue
 
             if unum_tehfeelz.Ugood.one(
-                from_id=ugood_check.from_id,
-                to_id=ugood_check.to_id,
+                from_id=ugoodcheck.from_id,
+                to_id=ugoodcheck.to_id,
                 status="active"
             ).retrieve(False) is None:
                 continue
 
-            text = f"how is {{entity:{ugood_check.from_id}}}?"
+            text = f"how is {{entity:{ugoodcheck.from_id}}}?"
 
             self.act(
-                entity_id=ugood_check.to_id,
+                entity_id=ugoodcheck.to_id,
                 app_id=self.app.id,
                 when=int(time.time()),
                 what={
                     "base": "statement",
                     "command": "ugoodcheck",
-                    "id": ugood_check.id,
+                    "id": ugoodcheck.id,
                     "meme": "?",
                     "text": text
                 }
             )
 
-            ugood_check.status = "active"
-            ugood_check.update()
+            ugoodcheck.status = "active"
+            ugoodcheck.update()
 
     @PROCESS.time()
     def process(self):
