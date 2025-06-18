@@ -16,6 +16,7 @@ import relations_rest
 
 import prometheus_client
 
+import unum_base
 import unum_ledger
 import unum_tehfeelz
 
@@ -47,7 +48,7 @@ EMOJI_STATES = {
     "!": "unstable"
 }
 
-class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attributes
+class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-public-methods,too-many-instance-attributes
     """
     Daemon class
     """
@@ -76,26 +77,6 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
         ):
             self.redis.xgroup_create("ledger/fact", self.group, mkstream=True)
 
-    def is_active(self, entity_id):
-        """
-        Checks to see if an enity has a Herald
-        """
-
-        # Need to be an active Entity and have and active Herald
-
-        return (
-            unum_ledger.Entity.one(
-                id=entity_id,
-                status="active"
-            ).retrieve(False) is not None
-            and
-            unum_ledger.Herald.one(
-                entity_id=entity_id,
-                app_id=self.app.id,
-                status="active"
-            ).retrieve(False) is not None
-        )
-
     def is_fam(self, from_id, to_id):
         """
         Checks to see from from to to is fam
@@ -108,56 +89,6 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
             to_id=to_id,
             status="active"
         ).retrieve(False) is not None
-
-    def encode_time(self, seconds):
-        """
-        Encodes seconds to 3d2h3m format
-        """
-
-        # Start with a blank string
-
-        arg = ""
-
-        # Determine and peel off the days, hours, and minutes
-
-        days = int(seconds/(24*60*60))
-        seconds -= days * 24*60*60
-        hours = int(seconds /(60*60))
-        seconds -= hours * 60*60
-        mins = int(seconds/(60))
-
-        # If there's a value, add it with its letter
-
-        if days:
-            arg += f"{days}d"
-
-        if hours:
-            arg += f"{hours}h"
-
-        if mins:
-            arg += f"{mins}m"
-
-        return arg
-
-    def act(self, **act):
-        """
-        Creates an act if needed
-        """
-
-        # If this person isn't active, don't write anything
-
-        if not self.is_active(act["entity_id"]):
-            return
-
-        # Create the act
-
-        act = unum_ledger.Act(**act).create()
-
-        # Log ig, metric it to Prometheus, throw it on the stream for consupmtion
-
-        self.logger.info("act", extra={"act": {"id": act.id}})
-        ACTS.observe(1)
-        self.redis.xadd("ledger/act", fields={"act": json.dumps(act.export())})
 
     def command_state(self, instance):
         """
@@ -186,11 +117,11 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
 
             # Create the state with now as when
 
-            state = unum_tehfeelz.State(
+            state = self.journal_change("create", unum_tehfeelz.State(
                 entity_id=entity_id,
                 when=time.time(),
                 what=what
-            ).create()
+            ))
 
             # Log and message it
 
@@ -228,7 +159,7 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
                 when = self.encode_time(now - state.when) or "now"
                 text += f"\n- {when} - {state.what}"
 
-        self.act(
+        self.create_act(
             entity_id=entity_id,
             app_id=self.app.id,
             when=int(time.time()),
@@ -258,11 +189,11 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
 
             what = values["mood"]
 
-            mood = unum_tehfeelz.Mood(
+            mood = self.journal_change("create", unum_tehfeelz.Mood(
                 entity_id=entity_id,
                 when=time.time(),
                 what=what
-            ).create()
+            ))
 
             self.logger.info("mood", extra={"mood": mood.export()})
 
@@ -294,7 +225,7 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
                 when = self.encode_time(now - mood.when) or "now"
                 text += f"\n- {mood.what} - {when}"
 
-        self.act(
+        self.create_act(
             entity_id=entity_id,
             app_id=self.app.id,
             when=int(time.time()),
@@ -321,11 +252,11 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
 
             what = values["thoughts"]
 
-            diary = unum_tehfeelz.Diary(
+            diary = self.journal_change("create", unum_tehfeelz.Diary(
                 entity_id=entity_id,
                 when=time.time(),
                 what={"text": what}
-            ).create()
+            ))
 
             self.logger.info("diary", extra={"diary": diary.export()})
 
@@ -357,7 +288,7 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
                 when = self.encode_time(now - diary.when) or "now"
                 text += f"\n- {when} - {diary.what__text}"
 
-        self.act(
+        self.create_act(
             entity_id=entity_id,
             app_id=self.app.id,
             when=int(time.time()),
@@ -404,14 +335,15 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
 
             if quepasa:
 
-                quepasa.when_min = when_min
-                quepasa.when_max = when_max
-                quepasa.status = "active"
-                quepasa.update()
+                self.journal_change("update", quepasa, change={
+                    "when_min": when_min,
+                    "when_max": when_max,
+                    "status": "active"
+                })
 
             else:
 
-                quepasa = unum_tehfeelz.QuePasa(
+                quepasa = self.journal_change("create", unum_tehfeelz.QuePasa(
                     entity_id=entity_id,
                     when_min=when_min,
                     when_max=when_max,
@@ -420,7 +352,7 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
                         "before": self.decode_time("8h"),
                         "after": self.decode_time("20h")
                     }
-                ).create()
+                ))
 
         elif usage == "stop":
 
@@ -434,8 +366,9 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
 
             elif quepasa.status == "active":
 
-                quepasa.status = "inactive"
-                quepasa.update()
+                self.journal_change("update", quepasa, change={
+                    "status": "inactive"
+                })
 
                 text = f"I will not check on you."
 
@@ -475,7 +408,7 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
                     next = self.encode_time(max(quepasa_check.when - now, 0)) or "now"
                     text += f" - next check {next}"
 
-        self.act(
+        self.create_act(
             entity_id=entity_id,
             app_id=self.app.id,
             when=int(time.time()),
@@ -519,12 +452,11 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
                     if fam:
 
                         if fam.status not in ["requested", "active"]:
-                            fam.status = "requested"
-                            fam.update()
+                            self.journal_change("update", fam, change={"status": "requested"})
 
                     else:
 
-                        fam = unum_tehfeelz.Fam(from_id=from_id, to_id=to_id, status="requested").create()
+                        fam = self.journal_change("create", unum_tehfeelz.Fam(from_id=from_id, to_id=to_id, status="requested"))
 
                     self.logger.info("fam", extra={"fam": fam.export()})
 
@@ -538,8 +470,7 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
                 if fam:
 
                     if fam.status == "active":
-                        fam.status = "inactive"
-                        fam.update()
+                        self.journal_change("update", fam, change={"status": "inactive"})
 
                     text = f"{{entity:{to_id}}} is not currently fam."
 
@@ -557,7 +488,7 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
                 entity = unum_ledger.Entity.one(fam.to_id)
                 text += f"\n{STATUS_EMOJIS[fam.status]} {entity.who} - {fam.status}"
 
-        self.act(
+        self.create_act(
             entity_id=entity_id,
             app_id=self.app.id,
             when=int(time.time()),
@@ -610,21 +541,20 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
             # Figure out the decision or bail if still undecided
 
             if instance["what"]["meme"] == "+":
-                fam.status = "active"
+                self.journal_change("update", fam, change={"status": "active"})
             elif instance["what"]["meme"] == "-":
-                fam.status = "rejected"
+                self.journal_change("update", fam, change={"status": "rejected"})
             else:
                 return
 
             # Update it, log it, message it
 
-            fam.update()
             self.logger.info("fam", extra={"fam": fam.export()})
             text = f"{fam.status} fam with {{entity:{from_id}}}"
 
         # Respond to the original message
 
-        self.act(
+        self.create_act(
             entity_id=to_id,
             app_id=self.app.id,
             when=int(time.time()),
@@ -689,20 +619,21 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
 
                     if ugood:
 
-                        ugood.when_min = when_min
-                        ugood.when_max = when_max
-                        ugood.status = "requested"
-                        ugood.update()
+                        self.journal_change("update", ugood, change={
+                            "when_min": when_min,
+                            "when_max": when_max,
+                            "status": "requested"
+                        })
 
                     else:
 
-                        ugood = unum_tehfeelz.Ugood(
+                        ugood = self.journal_change("create", unum_tehfeelz.Ugood(
                             from_id=from_id,
                             to_id=to_id,
                             when_min=when_min,
                             when_max=when_max,
                             status="requested"
-                        ).create()
+                        ))
 
                     self.logger.info("ugood", extra={"ugood": ugood.export()})
 
@@ -714,8 +645,7 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
 
                 if ugood:
 
-                    ugood.status = "inactive"
-                    ugood.update()
+                    self.journal_change("update", ugood, change={"status": "inactive"})
 
                     text = f"{{entity:{to_id}}} will not check in on you"
 
@@ -751,7 +681,7 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
                         next = self.encode_time(max(ugood_check.when - now, 0)) or "now"
                         text += f" - next check {next}"
 
-        self.act(
+        self.create_act(
             entity_id=entity_id,
             app_id=self.app.id,
             when=int(time.time()),
@@ -808,23 +738,22 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
             # Figure out the decision or bail if still undecided
 
             if meme_in == "+":
-                ugood.status = "active"
+                self.journal_change("update", ugood, change={"status": "active"})
                 meme_out = "+"
                 text = f"{{entity:{to_id}}} will check in on you"
             elif meme_in == "-":
-                ugood.status = "rejected"
+                self.journal_change("update", ugood, change={"status": "rejected"})
                 text = f"{{entity:{to_id}}} will not check in on you"
             else:
                 return
 
             # Update it, log it, message it
 
-            ugood.update()
             self.logger.info("ugood", extra={"ugood": ugood.export()})
 
         # Respond to the original message
 
-        self.act(
+        self.create_act(
             entity_id=from_id,
             app_id=self.app.id,
             when=int(time.time()),
@@ -868,8 +797,7 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
         # more can be added, but this is a success
 
         if quepasa_check.status != "inactive":
-            quepasa_check.status = "inactive"
-            quepasa_check.update()
+            self.journal_change("update", quepasa_check, change={"status": "inactive"})
 
         # Set up the reference
 
@@ -881,12 +809,12 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
 
                 what = EMOJI_STATES[meme_in]
 
-                state = unum_tehfeelz.State(
+                state = self.journal_change("create", unum_tehfeelz.State(
                     entity_id=entity_id,
                     when=time.time(),
                     what=what,
                     meta=meta
-                ).create()
+                ))
 
                 if what in ["bad", "unstable"]:
                     muy_bien = True
@@ -902,12 +830,12 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
 
                 what = emoji
 
-                mood = unum_tehfeelz.Mood(
+                mood = self.journal_change("create", unum_tehfeelz.Mood(
                     entity_id=entity_id,
                     when=time.time(),
                     what=what,
                     meta=meta
-                ).create()
+                ))
 
                 self.logger.info("mood", extra={"mood": mood.export()})
 
@@ -917,18 +845,18 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
 
             what = instance["what"]["text"]
 
-            diary = unum_tehfeelz.Diary(
+            diary = self.journal_change("create", unum_tehfeelz.Diary(
                 entity_id=entity_id,
                 when=time.time(),
                 what={"text": what},
                 meta=meta
-            ).create()
+            ))
 
             self.logger.info("diary", extra={"diary": diary.export()})
 
             text = f"recorded your thoughts - {what}"
 
-        self.act(
+        self.create_act(
             entity_id=entity_id,
             app_id=self.app.id,
             when=int(time.time()),
@@ -972,8 +900,7 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
             return
 
         if ugood_check.status != "inactive":
-            ugood_check.status = "inactive"
-            ugood_check.update()
+            self.journal_change("update", ugood_check, change={"status": "inactive"})
 
         meta = {"ugood_check":  ugood_check.id}
 
@@ -989,12 +916,12 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
 
                 what = EMOJI_STATES[meme_in]
 
-                state = unum_tehfeelz.State(
+                state = self.journal_change("create", unum_tehfeelz.State(
                     entity_id=ugood_check.from_id,
                     when=time.time(),
                     what=what,
                     meta=meta
-                ).create()
+                ))
 
                 if what in ["bad", "unstable"]:
                     muy_bien = True
@@ -1010,12 +937,12 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
 
                 what = emoji
 
-                mood = unum_tehfeelz.Mood(
+                mood = self.journal_change("create", unum_tehfeelz.Mood(
                     entity_id=ugood_check.from_id,
                     when=time.time(),
                     what=what,
                     meta=meta
-                ).create()
+                ))
 
                 self.logger.info("mood", extra={"mood": mood.export()})
 
@@ -1025,18 +952,18 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
 
             what = instance["what"]["text"]
 
-            diary = unum_tehfeelz.Diary(
+            diary = self.journal_change("create", unum_tehfeelz.Diary(
                 entity_id=ugood_check.from_id,
                 when=time.time(),
                 what={"text": what},
                 meta=meta
-            ).create()
+            ))
 
             self.logger.info("diary", extra={"diary": diary.export()})
 
             text = f"recorded {whose} thoughts - {what}"
 
-        self.act(
+        self.create_act(
             entity_id=entity_id,
             app_id=self.app.id,
             when=int(time.time()),
@@ -1073,17 +1000,15 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
 
             if muybien:
 
-                muybien.when = when
-                muybien.status = "active"
-                muybien.update()
+                self.journal_change("update", muybien, change={"when": when, "status": "active"})
 
             else:
 
-                muybien = unum_tehfeelz.MuyBien(
+                muybien = self.journal_change("create", unum_tehfeelz.MuyBien(
                     entity_id=entity_id,
                     when=when,
                     status="active"
-                ).create()
+                ))
 
         elif usage == "stop":
 
@@ -1097,9 +1022,7 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
 
             elif muybien.status == "active":
 
-                muybien.status = "inactive"
-                muybien.update()
-
+                self.journal_change("update", muybien, change={"status": "inactive"})
                 text = f"I will not adjust ugood checks for you."
 
         elif usage == "current":
@@ -1115,7 +1038,7 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
                 deduct = self.encode_time(muybien.when)
                 text = f"for every bad state, I will deduct {deduct} from your next ugood check"
 
-        self.act(
+        self.create_act(
             entity_id=entity_id,
             app_id=self.app.id,
             when=int(time.time()),
@@ -1143,8 +1066,7 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
             return
 
         ugood_check = ugood_checks[0]
-        ugood_check.when -= muybien.when
-        ugood_check.update()
+        self.journal_change("update", ugood_check, change={"when": ugood_check.when - muybien.when})
 
         now = int(time.time())
 
@@ -1154,7 +1076,7 @@ class Daemon: # pylint: disable=too-few-public-methods,too-many-instance-attribu
 
         text = f"I reduced {{entity:{to_id}}}'s next check by {by} to {next}"
 
-        self.act(
+        self.create_act(
             entity_id=entity_id,
             app_id=self.app.id,
             when=int(time.time()),

@@ -14,6 +14,7 @@ import redis
 import micro_logger
 import relations_rest
 
+import unum_base
 import unum_ledger
 import unum_tehfeelz
 
@@ -27,7 +28,7 @@ ACTS = prometheus_client.Summary("acts_created", "Acts created")
 WHO = "tehfeelz"
 NAME = f"{WHO}-daemon"
 
-class Cron: # pylint: disable=too-few-public-methods
+class Cron(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-public-methods
     """
     Cron class to run the processing
     """
@@ -78,23 +79,6 @@ class Cron: # pylint: disable=too-few-public-methods
 
         return True
 
-    def act(self, **act):
-        """
-        Creates an act if needed
-        """
-
-        if unum_ledger.Herald.one(
-            entity_id=act["entity_id"],
-            app_id=self.app.id
-        ).retrieve(False) is None:
-            return
-
-        act = unum_ledger.Act(**act).create()
-
-        self.logger.info("act", extra={"act": {"id": act.id}})
-        ACTS.observe(1)
-        self.redis.xadd("ledger/act", fields={"act": json.dumps(act.export())})
-
     def schedule_quepasachecks(self):
         """
         Schedules quepasa check ins
@@ -114,11 +98,11 @@ class Cron: # pylint: disable=too-few-public-methods
 
                 # Create a new check in
 
-                quepasacheck = unum_tehfeelz.QuePasaCheck(
+                quepasacheck = self.journal_change("create", unum_tehfeelz.QuePasaCheck(
                     entity_id=quqpasa.entity_id,
                     when=now+random.randint(quqpasa.when_min, quqpasa.when_max),
                     status="requested"
-                ).create()
+                ))
 
                 # And reject any old ones still out that
 
@@ -153,7 +137,7 @@ class Cron: # pylint: disable=too-few-public-methods
 
             text = f"how are you?"
 
-            self.act(
+            self.create_act(
                 entity_id=quepasacheck.entity_id,
                 app_id=self.app.id,
                 when=int(time.time()),
@@ -166,8 +150,7 @@ class Cron: # pylint: disable=too-few-public-methods
                 }
             )
 
-            quepasacheck.status = "active"
-            quepasacheck.update()
+            self.journal_change("update", quepasacheck, {"status": "active"})
 
     def schedule_ugoodchecks(self):
         """
@@ -187,12 +170,12 @@ class Cron: # pylint: disable=too-few-public-methods
                 when__gt=now
             ).retrieve(False) is None:
 
-                ugoodcheck = unum_tehfeelz.UgoodCheck(
+                self.journal_change("create", ugoodcheck = unum_tehfeelz.UgoodCheck(
                     from_id=ugood.from_id,
                     to_id=ugood.to_id,
                     when=now+random.randint(ugood.when_min, ugood.when_max),
                     status="requested"
-                ).create()
+                ))
 
                 rejected = unum_tehfeelz.UgoodCheck.many(
                     from_id=ugood.from_id,
@@ -227,7 +210,7 @@ class Cron: # pylint: disable=too-few-public-methods
 
             text = f"how is {{entity:{ugoodcheck.from_id}}}?"
 
-            self.act(
+            self.create_act(
                 entity_id=ugoodcheck.to_id,
                 app_id=self.app.id,
                 when=int(time.time()),
@@ -240,8 +223,7 @@ class Cron: # pylint: disable=too-few-public-methods
                 }
             )
 
-            ugoodcheck.status = "active"
-            ugoodcheck.update()
+            self.journal_change("update", ugoodcheck, {"status": "active"})
 
     @PROCESS.time()
     def process(self):

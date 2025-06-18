@@ -18,6 +18,7 @@ import relations
 import relations_pymysql
 import relations_restx
 
+import unum_base
 import unum_ledger
 import unum_tehfeelz
 
@@ -189,7 +190,7 @@ commands:
     reactions:
     - meme: '+'
       value: good
-      description: I will check on 
+      description: I will check on
     - meme: '-'
       value: bad
       description: I'm doing worse than expected.
@@ -236,42 +237,23 @@ commands:
   - name: current
     meme: '?'
     description: Shows your current muybien
+requests:
 - name: quepasacheck
-  user: false
-  reactions:
-  - meme: '?'
-    value: unable
-    description: I can't move forward. I'm stuck. 
-  - meme: '+'
-    value: good
-    description: I'm doing better than expected.
-  - meme: '*'
-    value: able
-    description: I'm doing as well as expected.
-  - meme: '-'
-    value: bad
-    description: I'm doing worse than expected.
-  - meme: '!'
-    value: unstable
-    description: Something is wrong. I'm hurting.
-- name: quepasacheck
-  user: false
-  reactions:
-  - meme: '?'
-    value: unable
-    description: I can't move forward. I'm stuck. 
-  - meme: '+'
-    value: good
-    description: I'm doing better than expected.
-  - meme: '*'
-    value: able
-    description: I'm doing as well as expected.
-  - meme: '-'
-    value: bad
-    description: I'm doing worse than expected.
-  - meme: '!'
-    value: unstable
-    description: Something is wrong. I'm hurting.
+  description: Me checking in on you
+  usages:
+  - name: check
+    meme: '?'
+    description: Request for state, mood, or diary
+    responses:
+    - kind: meme
+      name: state
+      description: Indicates your state
+    - kind: emoji
+      name: mood
+      description: Indicates your mood
+    - kind: reply
+      name: diary
+      description: Indicates your thoughts
 """
 
 NAME = f"{WHO}-api"
@@ -306,13 +288,14 @@ def build():
             app.unifist, schema=app.schema, autocommit=True, **creds
         )
 
-    if not unum_ledger.App.one(who="tehfeelz").retrieve(False):
-        unum_ledger.App(who="tehfeelz").create()
+    unum_source = unum_base.AppSource(app.logger, app.redis)
 
-    unum_ledger.App.one(who=WHO).set(meta=yaml.safe_load(META)).update()
+    unum_app = unum_ledger.App.one(who=WHO).retrieve(False)
 
-    def ping():
-        app.source.connection.ping(True)
+    if not unum_app:
+        unum_app = unum_source.journal_change("create", unum_ledger.App(who=WHO))
+
+    unum_source.journal_change("update", unum_app, {"meta": yaml.safe_load(META)})
 
     app.before_request(ping)
 
