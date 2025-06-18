@@ -7,12 +7,12 @@ import micro_logger
 import relations
 import relations_pymysql
 
-import unum_tehfeelz
+import unum_feelz
 
-unifist = unum_tehfeelz.Base.SOURCE
+unifist = unum_feelz.Base.SOURCE
 schema = unifist.replace('-', '_')
 
-logger = micro_logger.getLogger("tehfeelz-api")
+logger = micro_logger.getLogger("feelz-api")
 
 with open("/opt/service/secret/mysql.json", "r") as mysql_file:
     source = relations_pymysql.Source(unifist, schema=schema, autocommit=True, **json.loads(mysql_file.read()))

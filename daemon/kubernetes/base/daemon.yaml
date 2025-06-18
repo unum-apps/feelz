@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: daemon
-  namespace: tehfeelz
+  namespace: feelz
   labels:
     app: daemon
 spec:
@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: daemon
-        image: unum-apps-tehfeelz-daemon
+        image: unum-apps-feelz-daemon
         imagePullPolicy: Always
         env:
         - name: PYTHONUNBUFFERED

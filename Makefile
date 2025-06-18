@@ -25,7 +25,7 @@ down:
 setup:
 	docker run $(TTY) $(VOLUMES) $(INSTALL) sh -c "cp -r /opt/service /opt/install && \
 	cd /opt/install/ && python setup.py install && \
-	python -m unum_tehfeelz"
+	python -m unum_feelz"
 
 semver:
 	cd api; VERSION=$(VERSION) SEMVER=$(SEMVER) make semver;

@@ -6,7 +6,7 @@ import relations.unittest
 import json
 
 import service
-import unum_tehfeelz
+import unum_feelz
 
 class MockRedis:
 
@@ -92,28 +92,28 @@ class TestDaemon(micro_logger_unittest.TestCase):
 
         daemon = service.Daemon()
 
-        self.assertEqual(daemon.name, "tehfeelz-daemon")
-        self.assertEqual(daemon.unifist, "tehfeelz")
-        self.assertEqual(daemon.group, "daemon-tehfeelz")
+        self.assertEqual(daemon.name, "feelz-daemon")
+        self.assertEqual(daemon.unifist, "feelz")
+        self.assertEqual(daemon.group, "daemon-feelz")
         self.assertEqual(daemon.group_id, "test")
 
         self.assertEqual(daemon.sleep, 7)
 
-        self.assertEqual(daemon.logger.name, "tehfeelz-daemon")
+        self.assertEqual(daemon.logger.name, "feelz-daemon")
 
-        self.assertIsInstance(relations.source("tehfeelz"), relations.unittest.MockSource)
+        self.assertIsInstance(relations.source("feelz"), relations.unittest.MockSource)
 
-        self.assertEqual(daemon.redis.host, "redis.tehfeelz")
-        self.assertEqual(daemon.redis.queue["tehfeelz/origin"], [])
+        self.assertEqual(daemon.redis.host, "redis.feelz")
+        self.assertEqual(daemon.redis.queue["feelz/origin"], [])
 
     def test_process(self):
 
-        self.daemon.redis.queue["tehfeelz/origin"].append({})
+        self.daemon.redis.queue["feelz/origin"].append({})
 
         self.daemon.process()
 
-        origin = unum_tehfeelz.Origin("Tom").create()
-        self.daemon.redis.queue["tehfeelz/origin"].append({"origin": json.dumps(origin.export())})
+        origin = unum_feelz.Origin("Tom").create()
+        self.daemon.redis.queue["feelz/origin"].append({"origin": json.dumps(origin.export())})
 
         self.daemon.process()
         self.assertLogged(self.daemon.logger, "info", "origin", extra={"origin": origin.export()})

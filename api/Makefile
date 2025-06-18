@@ -1,8 +1,8 @@
 ACCOUNT?=$(shell cat ../ACCOUNT)
-IMAGE=unum-apps-tehfeelz-api
+IMAGE=unum-apps-feelz-api
 VERSION?=dev
 SEMVER=?=$(VERSION)
-NETWORK?=$(VERSION)-tehfeelz.io
+NETWORK?=$(VERSION)-feelz.io
 MYSQL_IMAGE=mysql/mysql-server:5.7
 MYSQL_HOST=$(IMAGE)-mysql
 DEBUG_PORT=15238

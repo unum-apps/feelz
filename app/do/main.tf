@@ -1,6 +1,6 @@
 resource "kubernetes_namespace" "namespace" {
   metadata {
-    name = "tehfeelz"
+    name = "feelz"
   }
 }
 
@@ -24,7 +24,7 @@ data "digitalocean_database_cluster" "cluster" {
 
 resource "digitalocean_database_user" "user" {
   cluster_id = data.digitalocean_database_cluster.cluster.id
-  name       = "tehfeelz"
+  name       = "feelz"
 }
 
 resource "kubernetes_secret" "secret" {

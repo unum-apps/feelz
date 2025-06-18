@@ -1,5 +1,5 @@
 ACCOUNT?=$(shell cat ../ACCOUNT)
-IMAGE=unum-apps-tehfeelz-gui
+IMAGE=unum-apps-feelz-gui
 VERSION?=dev
 SEMVER=?=$(VERSION)
 NAME=$(IMAGE)-$(ACCOUNT)

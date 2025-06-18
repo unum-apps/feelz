@@ -16,7 +16,7 @@ import relations_rest
 
 import unum_base
 import unum_ledger
-import unum_tehfeelz
+import unum_feelz
 
 import prometheus_client
 
@@ -25,7 +25,7 @@ REGISTRY = prometheus_client.CollectorRegistry()
 PROCESS = prometheus_client.Gauge("process_seconds", "Time to complete a processing task", registry=REGISTRY)
 ACTS = prometheus_client.Summary("acts_created", "Acts created")
 
-WHO = "tehfeelz"
+WHO = "feelz"
 NAME = f"{WHO}-daemon"
 
 class Cron(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-public-methods
@@ -36,7 +36,7 @@ class Cron(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-pub
     def __init__(self):
 
         self.name = NAME
-        self.unifist = unum_tehfeelz.Base.SOURCE
+        self.unifist = unum_feelz.Base.SOURCE
 
         self.logger = micro_logger.getLogger(self.name)
 
@@ -86,19 +86,19 @@ class Cron(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-pub
 
         now = time.time()
 
-        for quqpasa in unum_tehfeelz.QuePasa.many(status="active"):
+        for quqpasa in unum_feelz.QuePasa.many(status="active"):
 
             if not self.is_active(quqpasa.entity_id):
                 continue
 
-            if unum_tehfeelz.QuePasaCheck.one(
+            if unum_feelz.QuePasaCheck.one(
                 entity_id=quqpasa.entity_id,
                 when__gt=now
             ).retrieve(False) is None:
 
                 # Create a new check in
 
-                quepasacheck = self.journal_change("create", unum_tehfeelz.QuePasaCheck(
+                quepasacheck = self.journal_change("create", unum_feelz.QuePasaCheck(
                     entity_id=quqpasa.entity_id,
                     when=now+random.randint(quqpasa.when_min, quqpasa.when_max),
                     status="requested"
@@ -106,7 +106,7 @@ class Cron(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-pub
 
                 # And reject any old ones still out that
 
-                rejected = unum_tehfeelz.QuePasaCheck.many(
+                rejected = unum_feelz.QuePasaCheck.many(
                     entity_id=quqpasa.entity_id,
                     when__lt=now,
                     status="active"
@@ -124,12 +124,12 @@ class Cron(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-pub
 
         now = time.time()
 
-        for quepasacheck in unum_tehfeelz.QuePasaCheck.many(status="requested", when__lte=now):
+        for quepasacheck in unum_feelz.QuePasaCheck.many(status="requested", when__lte=now):
 
             if not self.is_active(quepasacheck.entity_id):
                 continue
 
-            if unum_tehfeelz.QuePasa.one(
+            if unum_feelz.QuePasa.one(
                 entity_id=quepasacheck.entity_id,
                 status="active"
             ).retrieve(False) is None:
@@ -159,25 +159,25 @@ class Cron(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-pub
 
         now = time.time()
 
-        for ugood in unum_tehfeelz.Ugood.many(status="active"):
+        for ugood in unum_feelz.Ugood.many(status="active"):
 
             if not self.is_active(ugood.to_id):
                 continue
 
-            if unum_tehfeelz.UgoodCheck.one(
+            if unum_feelz.UgoodCheck.one(
                 from_id=ugood.from_id,
                 to_id=ugood.to_id,
                 when__gt=now
             ).retrieve(False) is None:
 
-                self.journal_change("create", ugoodcheck = unum_tehfeelz.UgoodCheck(
+                self.journal_change("create", ugoodcheck = unum_feelz.UgoodCheck(
                     from_id=ugood.from_id,
                     to_id=ugood.to_id,
                     when=now+random.randint(ugood.when_min, ugood.when_max),
                     status="requested"
                 ))
 
-                rejected = unum_tehfeelz.UgoodCheck.many(
+                rejected = unum_feelz.UgoodCheck.many(
                     from_id=ugood.from_id,
                     to_id=ugood.to_id,
                     when__lt=now,
@@ -196,12 +196,12 @@ class Cron(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-pub
 
         now = time.time()
 
-        for ugoodcheck in unum_tehfeelz.UgoodCheck.many(status="requested", when__lte=now):
+        for ugoodcheck in unum_feelz.UgoodCheck.many(status="requested", when__lte=now):
 
             if not self.is_active(ugoodcheck.to_id):
                 continue
 
-            if unum_tehfeelz.Ugood.one(
+            if unum_feelz.Ugood.one(
                 from_id=ugoodcheck.from_id,
                 to_id=ugoodcheck.to_id,
                 status="active"
@@ -244,4 +244,4 @@ class Cron(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-pub
         self.process()
 
 
-        #prometheus_client.push_to_gateway("push.prometheus:9091", "tehfeelz/cron", registry=REGISTRY)
+        #prometheus_client.push_to_gateway("push.prometheus:9091", "feelz/cron", registry=REGISTRY)

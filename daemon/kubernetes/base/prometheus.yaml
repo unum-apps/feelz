@@ -2,7 +2,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: daemon
-  namespace: tehfeelz
+  namespace: feelz
   labels:
     app: daemon
 spec:

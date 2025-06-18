@@ -1,5 +1,5 @@
 """
-Contains the Models for tehfeelz
+Contains the Models for feelz
 """
 
 import relations
@@ -7,10 +7,10 @@ import unum_ledger
 
 class Base(relations.Model):
     """
-    Base class for tehfeelz models
+    Base class for feelz models
     """
 
-    SOURCE = "tehfeelz"
+    SOURCE = "feelz"
 
 class State(Base):
     """

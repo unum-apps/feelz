@@ -2,7 +2,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: gui
-  namespace: tehfeelz
+  namespace: feelz
 spec:
   selector:
     matchLabels:

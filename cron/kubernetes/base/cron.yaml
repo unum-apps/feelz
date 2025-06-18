@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: cron
-  namespace: tehfeelz
+  namespace: feelz
   labels:
     app: cron
 spec:
@@ -16,7 +16,7 @@ spec:
         spec:
           containers:
           - name: cron
-            image: unum-apps-tehfeelz-cron
+            image: unum-apps-feelz-cron
             imagePullPolicy: Always
             env:
             - name: PYTHONUNBUFFERED

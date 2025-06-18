@@ -1,5 +1,5 @@
 ACCOUNT?=$(shell cat ../ACCOUNT)
-IMAGE=unum-apps-tehfeelz-cron
+IMAGE=unum-apps-feelz-cron
 VERSION?=dev
 SEMVER=?=$(VERSION)
 DEBUG_PORT=35238
@@ -17,10 +17,10 @@ ENVIRONMENT=-e PYTHONDONTWRITEBYTECODE=1 \
 
 dep:
 	rm -rf dep/
-	mkdir -p dep/tehfeelz/api/lib/
-	cp ../api/lib/unum_tehfeelz.py dep/tehfeelz/api/lib/
-	cp ../VERSION dep/tehfeelz/
-	cp ../setup.py dep/tehfeelz/
+	mkdir -p dep/feelz/api/lib/
+	cp ../api/lib/unum_feelz.py dep/feelz/api/lib/
+	cp ../VERSION dep/feelz/
+	cp ../setup.py dep/feelz/
 
 build:
 	docker build . -t $(ACCOUNT)/$(IMAGE):$(VERSION)

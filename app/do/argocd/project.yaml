@@ -1,10 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
-  name: tehfeelz
+  name: feelz
 spec:
   destinations:
-  - namespace: tehfeelz
+  - namespace: feelz
     server: https://kubernetes.default.svc
   sourceRepos:
   - https://github.com/unifist/platform

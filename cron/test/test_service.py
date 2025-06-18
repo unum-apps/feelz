@@ -6,7 +6,7 @@ import relations.unittest
 import json
 
 import service
-import unum_tehfeelz
+import unum_feelz
 
 class MockRedis:
 
@@ -43,30 +43,30 @@ class TestCron(micro_logger_unittest.TestCase):
 
         cron = service.Cron()
 
-        self.assertEqual(cron.name, "tehfeelz-cron")
-        self.assertEqual(cron.unifist, "tehfeelz")
+        self.assertEqual(cron.name, "feelz-cron")
+        self.assertEqual(cron.unifist, "feelz")
 
 
-        self.assertEqual(cron.logger.name, "tehfeelz-cron")
+        self.assertEqual(cron.logger.name, "feelz-cron")
 
-        self.assertIsInstance(relations.source("tehfeelz"), relations.unittest.MockSource)
+        self.assertIsInstance(relations.source("feelz"), relations.unittest.MockSource)
 
-        self.assertEqual(cron.redis.host, "redis.tehfeelz")
+        self.assertEqual(cron.redis.host, "redis.feelz")
 
     def test_process(self):
 
-        origin = unum_tehfeelz.Origin("Tom").create()
+        origin = unum_feelz.Origin("Tom").create()
 
         self.cron.process()
 
         self.assertLogged(self.cron.logger, "info", "origin", extra={"origin": origin.export()})
 
-        self.assertEqual(len(self.cron.redis.queue['tehfeelz/origin']), 1)
-        self.assertEqual(json.loads(self.cron.redis.queue['tehfeelz/origin'][0]["fields"]["origin"]), origin.export())
+        self.assertEqual(len(self.cron.redis.queue['feelz/origin']), 1)
+        self.assertEqual(json.loads(self.cron.redis.queue['feelz/origin'][0]["fields"]["origin"]), origin.export())
 
     @unittest.mock.patch('prometheus_client.push_to_gateway')
     def test_run(self, mock_push):
 
         self.cron.run()
 
-        #mock_push.assert_called_once_with("push.prometheus:9091", "tehfeelz/cron", registry=service.REGISTRY)
+        #mock_push.assert_called_once_with("push.prometheus:9091", "feelz/cron", registry=service.REGISTRY)

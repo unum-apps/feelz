@@ -5,7 +5,7 @@ import relations
 import relations.unittest
 
 import service
-import unum_tehfeelz
+import unum_feelz
 
 import os
 import sys
@@ -31,7 +31,7 @@ class Testrestx(relations.unittest.TestCase):
 
         migrations = relations.Migrations()
 
-        cursor.execute("CREATE DATABASE IF NOT EXISTS `tehfeelz`")
+        cursor.execute("CREATE DATABASE IF NOT EXISTS `feelz`")
 
         migrations.load(self.app.source.name, "definition.sql")
 
@@ -39,7 +39,7 @@ class Testrestx(relations.unittest.TestCase):
 
         cursor = self.app.source.connection.cursor()
 
-        cursor.execute("DROP DATABASE IF EXISTS `tehfeelz`")
+        cursor.execute("DROP DATABASE IF EXISTS `feelz`")
 
 
 class TestAPI(Testrestx):
@@ -54,9 +54,9 @@ class TestAPI(Testrestx):
 
         app = service.build()
 
-        self.assertEqual(app.name, "tehfeelz-api")
-        self.assertEqual(app.unifist, "tehfeelz")
-        self.assertEqual(app.schema, "tehfeelz")
+        self.assertEqual(app.name, "feelz-api")
+        self.assertEqual(app.unifist, "feelz")
+        self.assertEqual(app.schema, "feelz")
 
     def test_migrations(self):
 
@@ -66,8 +66,8 @@ class TestAPI(Testrestx):
 
         for stamp, pair in migrations.list(self.app.source.name).items():
 
-            cursor.execute("DROP DATABASE IF EXISTS `tehfeelz`")
-            cursor.execute("CREATE DATABASE IF NOT EXISTS `tehfeelz`")
+            cursor.execute("DROP DATABASE IF EXISTS `feelz`")
+            cursor.execute("CREATE DATABASE IF NOT EXISTS `feelz`")
 
             try:
                 migrations.load(self.app.source.name, pair["definition"])

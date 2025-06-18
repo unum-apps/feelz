@@ -9,7 +9,7 @@ COPY requirements.txt .
 
 RUN apk add git && \
     pip install --no-cache-dir \
-       dep/tehfeelz/ \
+       dep/feelz/ \
 	   -r requirements.txt \
 	&& find /usr/local -depth \
 		\( \

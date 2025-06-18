@@ -40,8 +40,8 @@
             ]
         },
         "name": "diary",
-        "schema": "tehfeelz",
-        "source": "tehfeelz",
+        "schema": "feelz",
+        "source": "feelz",
         "store": "diary",
         "title": "Diary",
         "unique": {}
@@ -97,8 +97,8 @@
         "id": "id",
         "index": {},
         "name": "dispute",
-        "schema": "tehfeelz",
-        "source": "tehfeelz",
+        "schema": "feelz",
+        "source": "feelz",
         "store": "dispute",
         "title": "Dispute",
         "unique": {
@@ -154,8 +154,8 @@
         "id": "id",
         "index": {},
         "name": "fam",
-        "schema": "tehfeelz",
-        "source": "tehfeelz",
+        "schema": "feelz",
+        "source": "feelz",
         "store": "fam",
         "title": "Fam",
         "unique": {
@@ -210,8 +210,8 @@
         "id": "id",
         "index": {},
         "name": "mediation",
-        "schema": "tehfeelz",
-        "source": "tehfeelz",
+        "schema": "feelz",
+        "source": "feelz",
         "store": "mediation",
         "title": "Mediation",
         "unique": {
@@ -262,8 +262,8 @@
             ]
         },
         "name": "mood",
-        "schema": "tehfeelz",
-        "source": "tehfeelz",
+        "schema": "feelz",
+        "source": "feelz",
         "store": "mood",
         "title": "Mood",
         "unique": {}
@@ -313,8 +313,8 @@
         "id": "id",
         "index": {},
         "name": "muy_bien",
-        "schema": "tehfeelz",
-        "source": "tehfeelz",
+        "schema": "feelz",
+        "source": "feelz",
         "store": "muy_bien",
         "title": "MuyBien",
         "unique": {
@@ -374,8 +374,8 @@
         "id": "id",
         "index": {},
         "name": "que_pasa",
-        "schema": "tehfeelz",
-        "source": "tehfeelz",
+        "schema": "feelz",
+        "source": "feelz",
         "store": "que_pasa",
         "title": "QuePasa",
         "unique": {
@@ -433,8 +433,8 @@
             ]
         },
         "name": "que_pasa_check",
-        "schema": "tehfeelz",
-        "source": "tehfeelz",
+        "schema": "feelz",
+        "source": "feelz",
         "store": "que_pasa_check",
         "title": "QuePasaCheck",
         "unique": {
@@ -493,8 +493,8 @@
             ]
         },
         "name": "state",
-        "schema": "tehfeelz",
-        "source": "tehfeelz",
+        "schema": "feelz",
+        "source": "feelz",
         "store": "state",
         "title": "State",
         "unique": {}
@@ -556,8 +556,8 @@
         "id": "id",
         "index": {},
         "name": "ugood",
-        "schema": "tehfeelz",
-        "source": "tehfeelz",
+        "schema": "feelz",
+        "source": "feelz",
         "store": "ugood",
         "title": "Ugood",
         "unique": {
@@ -622,8 +622,8 @@
             ]
         },
         "name": "ugood_check",
-        "schema": "tehfeelz",
-        "source": "tehfeelz",
+        "schema": "feelz",
+        "source": "feelz",
         "store": "ugood_check",
         "title": "UgoodCheck",
         "unique": {

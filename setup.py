@@ -10,10 +10,10 @@ if version is None:
         version = version_file.read().strip()
 
 setup(
-    name="unum-tehfeelz",
+    name="unum-feelz",
     version=version,
     package_dir = {'': 'api/lib'},
-    py_modules = ['unum_tehfeelz'],
+    py_modules = ['unum_feelz'],
     install_requires=[
         'relations-rest==0.5.0'
     ]

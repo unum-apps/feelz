@@ -1,5 +1,5 @@
 CLUSTER="do-{{ unum }}-unum"
-NAMESPACE="tehfeelz"
+NAMESPACE="feelz"
 SERVICE="gui"
 LOCAL_PORT=7601
 .PHONY: tfenv init remote install uninstall

@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS `tehfeelz`.`diary` (
+CREATE TABLE IF NOT EXISTS `feelz`.`diary` (
   `id` BIGINT AUTO_INCREMENT,
   `entity_id` BIGINT,
   `when` BIGINT,
@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS `tehfeelz`.`diary` (
   INDEX `when` (`when`)
 );
 
-CREATE TABLE IF NOT EXISTS `tehfeelz`.`dispute` (
+CREATE TABLE IF NOT EXISTS `feelz`.`dispute` (
   `id` BIGINT AUTO_INCREMENT,
   `from_id` BIGINT,
   `to_id` BIGINT,
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS `tehfeelz`.`dispute` (
   UNIQUE `from_id_to_id_when` (`from_id`,`to_id`,`when`)
 );
 
-CREATE TABLE IF NOT EXISTS `tehfeelz`.`fam` (
+CREATE TABLE IF NOT EXISTS `feelz`.`fam` (
   `id` BIGINT AUTO_INCREMENT,
   `from_id` BIGINT,
   `to_id` BIGINT,
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS `tehfeelz`.`fam` (
   UNIQUE `from_id_to_id` (`from_id`,`to_id`)
 );
 
-CREATE TABLE IF NOT EXISTS `tehfeelz`.`mediation` (
+CREATE TABLE IF NOT EXISTS `feelz`.`mediation` (
   `id` BIGINT AUTO_INCREMENT,
   `dispute_id` BIGINT,
   `entity_id` BIGINT,
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS `tehfeelz`.`mediation` (
   UNIQUE `dispute_id_entity_id` (`dispute_id`,`entity_id`)
 );
 
-CREATE TABLE IF NOT EXISTS `tehfeelz`.`mood` (
+CREATE TABLE IF NOT EXISTS `feelz`.`mood` (
   `id` BIGINT AUTO_INCREMENT,
   `entity_id` BIGINT,
   `when` BIGINT,
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS `tehfeelz`.`mood` (
   INDEX `when` (`when`)
 );
 
-CREATE TABLE IF NOT EXISTS `tehfeelz`.`muy_bien` (
+CREATE TABLE IF NOT EXISTS `feelz`.`muy_bien` (
   `id` BIGINT AUTO_INCREMENT,
   `entity_id` BIGINT,
   `status` VARCHAR(255) NOT NULL DEFAULT 'requested',
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS `tehfeelz`.`muy_bien` (
   UNIQUE `entity_id` (`entity_id`)
 );
 
-CREATE TABLE IF NOT EXISTS `tehfeelz`.`que_pasa` (
+CREATE TABLE IF NOT EXISTS `feelz`.`que_pasa` (
   `id` BIGINT AUTO_INCREMENT,
   `entity_id` BIGINT,
   `when_min` BIGINT,
@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS `tehfeelz`.`que_pasa` (
   UNIQUE `entity_id` (`entity_id`)
 );
 
-CREATE TABLE IF NOT EXISTS `tehfeelz`.`que_pasa_check` (
+CREATE TABLE IF NOT EXISTS `feelz`.`que_pasa_check` (
   `id` BIGINT AUTO_INCREMENT,
   `entity_id` BIGINT,
   `when` BIGINT,
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS `tehfeelz`.`que_pasa_check` (
   UNIQUE `entity_id_when` (`entity_id`,`when`)
 );
 
-CREATE TABLE IF NOT EXISTS `tehfeelz`.`state` (
+CREATE TABLE IF NOT EXISTS `feelz`.`state` (
   `id` BIGINT AUTO_INCREMENT,
   `entity_id` BIGINT,
   `when` BIGINT,
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS `tehfeelz`.`state` (
   INDEX `when` (`when`)
 );
 
-CREATE TABLE IF NOT EXISTS `tehfeelz`.`ugood` (
+CREATE TABLE IF NOT EXISTS `feelz`.`ugood` (
   `id` BIGINT AUTO_INCREMENT,
   `from_id` BIGINT,
   `to_id` BIGINT,
@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS `tehfeelz`.`ugood` (
   UNIQUE `from_id_to_id` (`from_id`,`to_id`)
 );
 
-CREATE TABLE IF NOT EXISTS `tehfeelz`.`ugood_check` (
+CREATE TABLE IF NOT EXISTS `feelz`.`ugood_check` (
   `id` BIGINT AUTO_INCREMENT,
   `from_id` BIGINT,
   `to_id` BIGINT,

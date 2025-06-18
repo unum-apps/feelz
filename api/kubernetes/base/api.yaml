@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: api
-  namespace: tehfeelz
+  namespace: feelz
   labels:
     app: api
 spec:
@@ -17,7 +17,7 @@ spec:
     spec:
       initContainers:
       - name: migrate
-        image: unum-apps-tehfeelz-api
+        image: unum-apps-feelz-api
         command: ["/opt/service/bin/migrate.py"]
         env:
         - name: PYTHONUNBUFFERED
@@ -30,7 +30,7 @@ spec:
           readOnly: true
       containers:
       - name: api
-        image: unum-apps-tehfeelz-api
+        image: unum-apps-feelz-api
         imagePullPolicy: Always
         env:
         - name: PYTHONUNBUFFERED
@@ -65,7 +65,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: api
-  namespace: tehfeelz
+  namespace: feelz
   labels:
     app: api
 spec:

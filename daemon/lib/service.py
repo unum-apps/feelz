@@ -18,13 +18,13 @@ import prometheus_client
 
 import unum_base
 import unum_ledger
-import unum_tehfeelz
+import unum_feelz
 
 PROCESS = prometheus_client.Gauge("process_seconds", "Time to complete a processing task")
 FACTS = prometheus_client.Summary("facts_processed", "Facts processed")
 ACTS = prometheus_client.Summary("acts_created", "Acts created")
 
-WHO = "tehfeelz"
+WHO = "feelz"
 NAME = f"{WHO}-daemon"
 
 STATUS_EMOJIS = {
@@ -56,7 +56,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
     def __init__(self):
 
         self.name = NAME
-        self.unifist = unum_tehfeelz.Base.SOURCE
+        self.unifist = unum_feelz.Base.SOURCE
         self.group = f"daemon-{self.unifist}"
         self.group_id = os.environ["K8S_POD"]
 
@@ -84,7 +84,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
         # Connected and active
 
-        return unum_tehfeelz.Fam.one(
+        return unum_feelz.Fam.one(
             from_id=from_id,
             to_id=to_id,
             status="active"
@@ -117,7 +117,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
             # Create the state with now as when
 
-            state = self.journal_change("create", unum_tehfeelz.State(
+            state = self.journal_change("create", unum_feelz.State(
                 entity_id=entity_id,
                 when=time.time(),
                 what=what
@@ -151,7 +151,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
                 when_to = self.encode_time(when_max) or 'now'
                 text = f"your states from {when_from} to {when_to} are:"
 
-            for state in unum_tehfeelz.State.many(
+            for state in unum_feelz.State.many(
                 entity_id=entity_id,
                 when__gte=now - when_min,
                 when__lte=now - when_max
@@ -189,7 +189,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
             what = values["mood"]
 
-            mood = self.journal_change("create", unum_tehfeelz.Mood(
+            mood = self.journal_change("create", unum_feelz.Mood(
                 entity_id=entity_id,
                 when=time.time(),
                 what=what
@@ -217,7 +217,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
                 when_max = values["to"]
                 text = f"your moods from {self.encode_time(when_min) or 'now'} to {self.encode_time(when_max) or 'now'} are:"
 
-            for mood in unum_tehfeelz.Mood.many(
+            for mood in unum_feelz.Mood.many(
                 entity_id=entity_id,
                 when__gte=now - when_min,
                 when__lte=now - when_max
@@ -252,7 +252,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
             what = values["thoughts"]
 
-            diary = self.journal_change("create", unum_tehfeelz.Diary(
+            diary = self.journal_change("create", unum_feelz.Diary(
                 entity_id=entity_id,
                 when=time.time(),
                 what={"text": what}
@@ -280,7 +280,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
                 when_max = values["to"]
                 text = f"your diaries from {self.encode_time(when_min) or 'now'} to {self.encode_time(when_max) or 'now'} are:"
 
-            for diary in unum_tehfeelz.Diary.many(
+            for diary in unum_feelz.Diary.many(
                 entity_id=entity_id,
                 when__gte=now - when_min,
                 when__lte=now - when_max
@@ -311,7 +311,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
         base = "reaction"
         meme = "+"
 
-        quepasa = unum_tehfeelz.QuePasa.one(entity_id=entity_id).retrieve(False)
+        quepasa = unum_feelz.QuePasa.one(entity_id=entity_id).retrieve(False)
 
         if usage.startswith("start"):
 
@@ -343,7 +343,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
             else:
 
-                quepasa = self.journal_change("create", unum_tehfeelz.QuePasa(
+                quepasa = self.journal_change("create", unum_feelz.QuePasa(
                     entity_id=entity_id,
                     when_min=when_min,
                     when_max=when_max,
@@ -399,7 +399,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
                 now = int(time.time())
 
-                quepasa_check = unum_tehfeelz.QuePasaCheck.one(
+                quepasa_check = unum_feelz.QuePasaCheck.one(
                     entity_id=quepasa.entity_id,
                     status="scheduled"
                 ).retrieve(False)
@@ -436,7 +436,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
             from_id = entity_id
             to_id = entity_id = values["who"]
 
-            fam = unum_tehfeelz.Fam.one(from_id=from_id, to_id=to_id).retrieve(False)
+            fam = unum_feelz.Fam.one(from_id=from_id, to_id=to_id).retrieve(False)
 
             if usage == "start":
 
@@ -456,7 +456,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
                     else:
 
-                        fam = self.journal_change("create", unum_tehfeelz.Fam(from_id=from_id, to_id=to_id, status="requested"))
+                        fam = self.journal_change("create", unum_feelz.Fam(from_id=from_id, to_id=to_id, status="requested"))
 
                     self.logger.info("fam", extra={"fam": fam.export()})
 
@@ -484,7 +484,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
             text = f"your current fam are:"
 
-            for fam in unum_tehfeelz.Fam.many(from_id=entity_id):
+            for fam in unum_feelz.Fam.many(from_id=entity_id):
                 entity = unum_ledger.Entity.one(fam.to_id)
                 text += f"\n{STATUS_EMOJIS[fam.status]} {entity.who} - {fam.status}"
 
@@ -536,7 +536,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
             # Get the fam in requested mode
 
-            fam = unum_tehfeelz.Fam.one(from_id=from_id, to_id=to_id).retrieve()
+            fam = unum_feelz.Fam.one(from_id=from_id, to_id=to_id).retrieve()
 
             # Figure out the decision or bail if still undecided
 
@@ -585,7 +585,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
             from_id = entity_id
             to_id = values["who"]
 
-            ugood = unum_tehfeelz.Ugood.one(from_id=from_id, to_id=to_id).retrieve(False)
+            ugood = unum_feelz.Ugood.one(from_id=from_id, to_id=to_id).retrieve(False)
 
             if usage.startswith("start"):
 
@@ -627,7 +627,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
                     else:
 
-                        ugood = self.journal_change("create", unum_tehfeelz.Ugood(
+                        ugood = self.journal_change("create", unum_feelz.Ugood(
                             from_id=from_id,
                             to_id=to_id,
                             when_min=when_min,
@@ -661,7 +661,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
             text = f"your current ugood are:"
 
-            for ugood in unum_tehfeelz.Ugood.many(from_id=entity_id):
+            for ugood in unum_feelz.Ugood.many(from_id=entity_id):
 
                 entity = unum_ledger.Entity.one(ugood.to_id)
                 text += f"\n- {STATUS_EMOJIS[ugood.status]} {entity.who} - {ugood.status}"
@@ -670,7 +670,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
                     now = int(time.time())
 
-                    ugood_check = unum_tehfeelz.UgoodCheck.one(
+                    ugood_check = unum_feelz.UgoodCheck.one(
                         from_id=ugood.from_id,
                         to_id=ugood.to_id,
                         status="requested",
@@ -733,7 +733,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
             # Get the fam in requested mode
 
-            ugood = unum_tehfeelz.Ugood.one(from_id=from_id, to_id=to_id).retrieve()
+            ugood = unum_feelz.Ugood.one(from_id=from_id, to_id=to_id).retrieve()
 
             # Figure out the decision or bail if still undecided
 
@@ -786,7 +786,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
         # Get the check
 
-        quepasa_check = unum_tehfeelz.QuePasaCheck.one(id=id)
+        quepasa_check = unum_feelz.QuePasaCheck.one(id=id)
 
         # If it doesn't match, bail
 
@@ -809,7 +809,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
                 what = EMOJI_STATES[meme_in]
 
-                state = self.journal_change("create", unum_tehfeelz.State(
+                state = self.journal_change("create", unum_feelz.State(
                     entity_id=entity_id,
                     when=time.time(),
                     what=what,
@@ -830,7 +830,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
                 what = emoji
 
-                mood = self.journal_change("create", unum_tehfeelz.Mood(
+                mood = self.journal_change("create", unum_feelz.Mood(
                     entity_id=entity_id,
                     when=time.time(),
                     what=what,
@@ -845,7 +845,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
             what = instance["what"]["text"]
 
-            diary = self.journal_change("create", unum_tehfeelz.Diary(
+            diary = self.journal_change("create", unum_feelz.Diary(
                 entity_id=entity_id,
                 when=time.time(),
                 what={"text": what},
@@ -893,7 +893,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
         if not self.is_active(entity_id):
             return
 
-        ugood_check = unum_tehfeelz.UgoodCheck.one(id=id)
+        ugood_check = unum_feelz.UgoodCheck.one(id=id)
         meme = "*"
 
         if entity_id not in [ugood_check.from_id, ugood_check.to_id]:
@@ -916,7 +916,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
                 what = EMOJI_STATES[meme_in]
 
-                state = self.journal_change("create", unum_tehfeelz.State(
+                state = self.journal_change("create", unum_feelz.State(
                     entity_id=ugood_check.from_id,
                     when=time.time(),
                     what=what,
@@ -937,7 +937,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
                 what = emoji
 
-                mood = self.journal_change("create", unum_tehfeelz.Mood(
+                mood = self.journal_change("create", unum_feelz.Mood(
                     entity_id=ugood_check.from_id,
                     when=time.time(),
                     what=what,
@@ -952,7 +952,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
             what = instance["what"]["text"]
 
-            diary = self.journal_change("create", unum_tehfeelz.Diary(
+            diary = self.journal_change("create", unum_feelz.Diary(
                 entity_id=ugood_check.from_id,
                 when=time.time(),
                 what={"text": what},
@@ -989,7 +989,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
         base = "reaction"
         meme = "+"
 
-        muybien = unum_tehfeelz.MuyBien.one(entity_id=entity_id).retrieve(False)
+        muybien = unum_feelz.MuyBien.one(entity_id=entity_id).retrieve(False)
 
         if usage == "start":
 
@@ -1004,7 +1004,7 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
 
             else:
 
-                muybien = self.journal_change("create", unum_tehfeelz.MuyBien(
+                muybien = self.journal_change("create", unum_feelz.MuyBien(
                     entity_id=entity_id,
                     when=when,
                     status="active"
@@ -1055,12 +1055,12 @@ class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-p
         See if there's a muy bien and execute if so
         """
 
-        muybien = unum_tehfeelz.MuyBien.one(entity_id=entity_id, status="active").retrieve(False)
+        muybien = unum_feelz.MuyBien.one(entity_id=entity_id, status="active").retrieve(False)
 
         if not muybien:
             return
 
-        ugood_checks = unum_tehfeelz.UgoodCheck.many(from_id=entity_id, status="requested").sort("when")
+        ugood_checks = unum_feelz.UgoodCheck.many(from_id=entity_id, status="requested").sort("when")
 
         if not len(ugood_checks):
             return

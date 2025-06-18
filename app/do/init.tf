@@ -8,7 +8,7 @@ terraform {
     }
 
     bucket = "unifist-terraform-state"
-    key    = "unifist/platform/unums/{{ unum }}/apps/tehfeelz"
+    key    = "unifist/platform/unums/{{ unum }}/apps/feelz"
 
     # Deactivate a few AWS-specific checks
     skip_credentials_validation = true

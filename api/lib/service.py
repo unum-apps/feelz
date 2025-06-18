@@ -20,12 +20,12 @@ import relations_restx
 
 import unum_base
 import unum_ledger
-import unum_tehfeelz
+import unum_feelz
 
-WHO = "tehfeelz"
+WHO = "feelz"
 META = """
-title: TehFeelz
-channel: unum-tehfeelz
+title: feelz
+channel: unum-feelz
 description: Tracks yours and others feelings and the relationships between.
 help: |
   This does a lot of cool shit with your feelings
@@ -270,7 +270,7 @@ def build():
     app = flask.Flask(service.NAME)
 
     app.logger = micro_logger.getLogger(service.NAME)
-    app.unifist = unum_tehfeelz.Base.SOURCE
+    app.unifist = unum_feelz.Base.SOURCE
     app.schema = app.unifist.replace('-', '_')
 
     metrics.init_app(app)
@@ -301,7 +301,7 @@ def build():
 
     api.add_resource(Health, '/health')
 
-    relations_restx.attach(api, service, relations.models(unum_tehfeelz, unum_tehfeelz.Base))
+    relations_restx.attach(api, service, relations.models(unum_feelz, unum_feelz.Base))
 
     return app
 
