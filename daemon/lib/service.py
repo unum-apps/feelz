@@ -48,7 +48,7 @@ EMOJI_STATES = {
     "!": "unstable"
 }
 
-class Daemon(unum_base.Source, unum_base.AppSource): # pylint: disable=too-few-public-methods,too-many-instance-attributes
+class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-many-instance-attributes
     """
     Daemon class
     """
