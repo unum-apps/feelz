@@ -24,6 +24,8 @@ down:
 
 setup:
 	docker run $(TTY) $(VOLUMES) $(INSTALL) sh -c "cp -r /opt/service /opt/install && \
+	apk add git && \
+	pip install 'unum-ledger @ git+https://github.com/unum-apps/ledger@0.1.4rc2' && \
 	cd /opt/install/ && python setup.py install && \
 	python -m unum_feelz"
 
