@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- https://github.com/unum-apps/feelz/kubernetes/base?ref=0.1.0rc1
+images:
+- name: unum-apps-feelz-api
+  newName: gaf3/unum-apps-feelz-api
+  newTag: 0.1.0rc1
+- name: unum-apps-feelz-cron
+  newName: gaf3/unum-apps-feelz-cron
+  newTag: 0.1.0rc1
+- name: unum-apps-feelz-daemon
+  newName: gaf3/unum-apps-feelz-daemon
+  newTag: 0.1.0rc1
+- name: unum-apps-feelz-gui
+  newName: gaf3/unum-apps-feelz-gui
+  newTag: 0.1.0rc1

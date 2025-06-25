@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: feelz
+spec:
+  project: feelz
+  source:
+    repoURL: https://github.com/unifist/platform
+    path: unums/{{ unum }}/apps/feelz
+    targetRevision: HEAD
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: feelz
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

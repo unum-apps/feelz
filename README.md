@@ -1,2 +1,2 @@
-# tehfeelz
+# feelz
 Helps your feelings
