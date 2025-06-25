@@ -1,4 +1,4 @@
-unum-ledger @ git+https://github.com/unum-apps/ledger@0.1.4rc1
+unum-ledger @ git+https://github.com/unum-apps/ledger@0.1.4rc2
 relations-pymysql==0.6.12
 relations-restx==0.6.2
 micro-logger==0.1.2

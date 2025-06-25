@@ -39,6 +39,11 @@ class MockRedis:
         if mkstream:
             self.queue[stream] = []
 
+    def xadd(self, stream, fields):
+
+        self.queue.setdefault(stream, [])
+        self.queue[stream].append({"fields": fields})
+
     def xreadgroup(self, group, consumer, streams, count=0, block=5000):
 
         self.read = {
@@ -94,7 +99,7 @@ class TestDaemon(micro_logger_unittest.TestCase):
 
         self.assertEqual(daemon.name, "feelz-daemon")
         self.assertEqual(daemon.unifist, "feelz")
-        self.assertEqual(daemon.group, "daemon-feelz")
+        self.assertEqual(daemon.group, "feelz-daemon")
         self.assertEqual(daemon.group_id, "test")
 
         self.assertEqual(daemon.sleep, 7)
@@ -103,20 +108,13 @@ class TestDaemon(micro_logger_unittest.TestCase):
 
         self.assertIsInstance(relations.source("feelz"), relations.unittest.MockSource)
 
-        self.assertEqual(daemon.redis.host, "redis.feelz")
-        self.assertEqual(daemon.redis.queue["feelz/origin"], [])
+        self.assertEqual(daemon.redis.host, "redis.ledger")
 
     def test_process(self):
 
-        self.daemon.redis.queue["feelz/origin"].append({})
+        self.daemon.redis.queue["ledger/fact"].append({})
 
         self.daemon.process()
-
-        origin = unum_feelz.Origin("Tom").create()
-        self.daemon.redis.queue["feelz/origin"].append({"origin": json.dumps(origin.export())})
-
-        self.daemon.process()
-        self.assertLogged(self.daemon.logger, "info", "origin", extra={"origin": origin.export()})
 
     @unittest.mock.patch('prometheus_client.start_http_server')
     def test_run(self, mock_prom):

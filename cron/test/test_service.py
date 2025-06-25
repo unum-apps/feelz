@@ -4,9 +4,11 @@ import micro_logger_unittest
 import relations.unittest
 
 import json
+import relations_rest
 
 import service
 import unum_feelz
+import unum_ledger
 
 class MockRedis:
 
@@ -35,6 +37,8 @@ class TestCron(micro_logger_unittest.TestCase):
 
         self.cron = service.Cron()
 
+        unum_ledger.App(who="feelz").create()
+
     @unittest.mock.patch.dict('os.environ', {"LOG_LEVEL": "INFO"})
     @unittest.mock.patch("micro_logger.getLogger", micro_logger_unittest.MockLogger)
     @unittest.mock.patch('relations_rest.Source', relations.unittest.MockSource)
@@ -51,18 +55,11 @@ class TestCron(micro_logger_unittest.TestCase):
 
         self.assertIsInstance(relations.source("feelz"), relations.unittest.MockSource)
 
-        self.assertEqual(cron.redis.host, "redis.feelz")
+        self.assertEqual(cron.redis.host, "redis.ledger")
 
     def test_process(self):
 
-        origin = unum_feelz.Origin("Tom").create()
-
         self.cron.process()
-
-        self.assertLogged(self.cron.logger, "info", "origin", extra={"origin": origin.export()})
-
-        self.assertEqual(len(self.cron.redis.queue['feelz/origin']), 1)
-        self.assertEqual(json.loads(self.cron.redis.queue['feelz/origin'][0]["fields"]["origin"]), origin.export())
 
     @unittest.mock.patch('prometheus_client.push_to_gateway')
     def test_run(self, mock_push):

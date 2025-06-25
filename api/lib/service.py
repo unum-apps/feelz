@@ -17,7 +17,6 @@ import relations
 import relations_pymysql
 import relations_restx
 
-import unum_base
 import unum_ledger
 import unum_feelz
 
@@ -43,7 +42,7 @@ def build():
 
     api = flask_restx.Api(app)
 
-    app.redis = redis.Redis(host=f'redis.ledger', encoding="utf-8", decode_responses=True)
+    app.redis = redis.Redis(host='redis.ledger', encoding="utf-8", decode_responses=True)
 
     with open("/opt/service/secret/mysql.json", "r") as mysql_file:
         creds = json.loads(mysql_file.read())

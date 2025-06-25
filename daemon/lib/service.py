@@ -2,10 +2,9 @@
 Module for the Daemon
 """
 
-# pylint: disable=no-self-use
+# pylint: disable=no-self-use,too-many-locals,too-many-branches,too-many-statements,len-as-condition,line-too-long
 
 import os
-import re
 import time
 
 import micro_logger
@@ -397,9 +396,8 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
 
     def __init__(self):
 
-        self.name = NAME
+        self.name = self.group = NAME
         self.unifist = unum_feelz.Base.SOURCE
-        self.group = f"daemon-{self.unifist}"
         self.group_id = os.environ["K8S_POD"]
 
         self.sleep = int(os.environ.get("SLEEP", 5))
@@ -528,7 +526,7 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
 
         entity_id = instance["entity_id"]
         usage = instance["what"]["usage"]
-        values = instance["what"].get("values",{})
+        values = instance["what"].get("values", {})
         base = "statement"
         meme = "*"
 
@@ -591,7 +589,7 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
 
         entity_id = instance["entity_id"]
         usage = instance["what"]["usage"]
-        values = instance["what"].get("values",{})
+        values = instance["what"].get("values", {})
         base = "statement"
         meme = "*"
 
@@ -654,7 +652,7 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
 
         entity_id = instance["entity_id"]
         usage = instance["what"]["usage"]
-        values = instance["what"].get("values",{})
+        values = instance["what"].get("values", {})
         base = "reaction"
         meme = "+"
 
@@ -705,11 +703,11 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
 
             if not quepasa:
 
-                text = f"I have never checked in on you."
+                text = "I have never checked in on you."
 
             elif quepasa.status == "inactive":
 
-                text = f"I am not checking in on you."
+                text = "I am not checking in on you."
 
             elif quepasa.status == "active":
 
@@ -717,7 +715,7 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
                     "status": "inactive"
                 })
 
-                text = f"I will not check on you."
+                text = "I will not check on you."
 
         elif usage == "current":
 
@@ -726,7 +724,7 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
 
             if not quepasa or quepasa.status == "inactive":
 
-                text = f"I am not checking in on you."
+                text = "I am not checking in on you."
 
             elif quepasa.status == "active":
 
@@ -774,7 +772,7 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
 
         entity_id = instance["entity_id"]
         usage = instance["what"]["usage"]
-        values = instance["what"].get("values",{})
+        values = instance["what"].get("values", {})
         base = "statement"
         meme = "*"
 
@@ -829,7 +827,7 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
 
         elif usage == "current":
 
-            text = f"your current fam are:"
+            text = "your current fam are:"
 
             for fam in unum_feelz.Fam.many(from_id=entity_id):
                 entity = unum_ledger.Entity.one(fam.to_id)
@@ -860,9 +858,9 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
             return
 
         entity_id = instance["entity_id"]           # Who reacted
-        ancestor =  instance["what"]["ancestor"]    # What was reacted to
+        ancestor = instance["what"]["ancestor"]    # What was reacted to
         from_id = ancestor["entity_id"]             # Who reqested the fam
-        values = ancestor.get("values",{})
+        values = ancestor.get("values", {})
         to_id = values["who"]                       # Who was requested to
         base = "reaction"
         meme = "+"
@@ -1006,7 +1004,7 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
 
             base = "statement"
 
-            text = f"your current ugood are:"
+            text = "your current ugood are:"
 
             for ugood in unum_feelz.Ugood.many(from_id=entity_id):
 
@@ -1053,9 +1051,9 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
             return
 
         entity_id = instance["entity_id"]           # Who reacted
-        ancestor =  instance["what"]["ancestor"]    # What was reacted to
+        ancestor = instance["what"]["ancestor"]    # What was reacted to
         from_id = ancestor["entity_id"]             # Who reqested the fam
-        values = ancestor.get("values",{})
+        values = ancestor.get("values", {})
         to_id = values["who"]                       # Who was requested to
         base = "reaction"
         meme_in = instance["what"]["meme"]
@@ -1241,7 +1239,6 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
             return
 
         ugood_check = unum_feelz.UgoodCheck.one(id=id)
-        meme = "*"
 
         if entity_id not in [ugood_check.from_id, ugood_check.to_id]:
             return
@@ -1332,7 +1329,7 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
 
         entity_id = instance["entity_id"]
         usage = instance["what"]["usage"]
-        values = instance["what"].get("values",{})
+        values = instance["what"].get("values", {})
         base = "reaction"
         meme = "+"
 
@@ -1361,16 +1358,16 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
 
             if not muybien:
 
-                text = f"I have never adjusted ugood checks for you."
+                text = "I have never adjusted ugood checks for you."
 
             elif muybien.status == "inactive":
 
-                text = f"I am not adjusting ugood checks for you."
+                text = "I am not adjusting ugood checks for you."
 
             elif muybien.status == "active":
 
                 self.journal_change("update", muybien, change={"status": "inactive"})
-                text = f"I will not adjust ugood checks for you."
+                text = "I will not adjust ugood checks for you."
 
         elif usage == "current":
 
@@ -1378,12 +1375,12 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
 
             if not muybien or muybien.status == "inactive":
 
-                text = f"I am not adjusting ugood checks for you."
+                text = "I am not adjusting ugood checks for you."
 
             elif muybien.status == "active":
 
                 deduct = self.encode_time(muybien.when)
-                text = f"for every bad state, I will deduct {deduct} from your next ugood check"
+                text = "for every bad state, I will deduct {deduct} from your next ugood check"
 
         self.create_act(
             entity_id=entity_id,

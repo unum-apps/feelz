@@ -5,7 +5,6 @@ Module for the Subnet Queue
 # pylint: disable=no-self-use
 
 import time
-import json
 import random
 import datetime
 
@@ -26,12 +25,14 @@ PROCESS = prometheus_client.Gauge("process_seconds", "Time to complete a process
 ACTS = prometheus_client.Summary("acts_created", "Acts created")
 
 WHO = "feelz"
-NAME = f"{WHO}-daemon"
+NAME = f"{WHO}-cron"
 
 class Cron(unum_base.AppSource): # pylint: disable=too-few-public-methods
     """
     Cron class to run the processing
     """
+
+    app = None
 
     def __init__(self):
 
@@ -42,8 +43,6 @@ class Cron(unum_base.AppSource): # pylint: disable=too-few-public-methods
 
         relations_rest.Source(unum_ledger.Base.SOURCE, url=f"http://api.{unum_ledger.Base.SOURCE}")
         self.source = relations_rest.Source(self.unifist, url=f"http://api.{self.unifist}")
-
-        self.app = unum_ledger.App.one(who=WHO).retrieve()
 
         self.redis = redis.Redis(host=f'redis.{unum_ledger.Base.SOURCE}', encoding="utf-8", decode_responses=True)
 
@@ -65,7 +64,7 @@ class Cron(unum_base.AppSource): # pylint: disable=too-few-public-methods
             app_id=self.app.id,
             status="active"
         ).retrieve(False):
-             return False
+            return False
 
         now = datetime.datetime.now()
         midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -139,7 +138,7 @@ class Cron(unum_base.AppSource): # pylint: disable=too-few-public-methods
             ).retrieve(False) is None:
                 continue
 
-            text = f"how are you?"
+            text = "how are you?"
 
             self.create_act(
                 entity_id=quepasacheck.entity_id,
@@ -247,7 +246,7 @@ class Cron(unum_base.AppSource): # pylint: disable=too-few-public-methods
         Runs through s process
         """
 
+        self.app = unum_ledger.App.one(who=WHO).retrieve()
         self.process()
-
 
         #prometheus_client.push_to_gateway("push.prometheus:9091", "feelz/cron", registry=REGISTRY)
