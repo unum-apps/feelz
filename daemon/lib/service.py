@@ -734,13 +734,13 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
                 if quepasa.when_min == quepasa.when_max:
 
                     when_every = self.encode_time(quepasa.when_min)
-                    text = f"I will check on you every {when_every} only after {after} and before {before} of the day"
+                    text = f"I will check on you every {when_every}"
 
                 else:
 
                     when_from = self.encode_time(quepasa.when_min)
                     when_to = self.encode_time(quepasa.when_max)
-                    text = f"I will check on you from every {when_from} to every {when_to} only after {after} and before {before} of the day"
+                    text = f"I will check on you from every {when_from} to every {when_to}"
 
                 now = int(time.time())
 
@@ -1009,7 +1009,17 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
             for ugood in unum_feelz.Ugood.many(from_id=entity_id):
 
                 entity = unum_ledger.Entity.one(ugood.to_id)
-                text += f"\n- {STATUS_EMOJIS[ugood.status]} {entity.who} - {ugood.status}"
+
+                if ugood.when_min == ugood.when_max:
+
+                    when_every = self.encode_time(ugood.when_min)
+                    text = f"\n- {STATUS_EMOJIS[ugood.status]} {entity.who} will check on you every {when_every} - {ugood.status}"
+
+                else:
+
+                    when_from = self.encode_time(ugood.when_min)
+                    when_to = self.encode_time(ugood.when_max)
+                    text = f"- {STATUS_EMOJIS[ugood.status]} {entity.who} will check on you from every {when_from} to every {when_to} - {ugood.status}"
 
                 if ugood.status == "active":
 
