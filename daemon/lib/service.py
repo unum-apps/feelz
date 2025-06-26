@@ -728,9 +728,6 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
 
             elif quepasa.status == "active":
 
-                after = quepasa.meta__after
-                before = quepasa.meta__before
-
                 if quepasa.when_min == quepasa.when_max:
 
                     when_every = self.encode_time(quepasa.when_min)
