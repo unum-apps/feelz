@@ -661,8 +661,6 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
         if usage.startswith("start"):
 
             when_min = when_max = 0
-            before = "8h"
-            after = "20h"
 
             if usage == "start_every":
 
@@ -692,11 +690,7 @@ class Daemon(unum_base.AppSource): # pylint: disable=too-few-public-methods,too-
                     entity_id=entity_id,
                     when_min=when_min,
                     when_max=when_max,
-                    status="active",
-                    meta={
-                        "before": self.decode_time("8h"),
-                        "after": self.decode_time("20h")
-                    }
+                    status="active"
                 ))
 
         elif usage == "stop":
