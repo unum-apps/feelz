@@ -181,6 +181,8 @@ class Cron(unum_base.AppSource): # pylint: disable=too-few-public-methods
                     status="requested"
                 ))
 
+                rejected = 0
+
                 for old in unum_feelz.UgoodCheck.many(
                     from_id=ugood.from_id,
                     to_id=ugood.to_id,
